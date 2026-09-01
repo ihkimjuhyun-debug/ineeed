@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강의 받아쓰기 노트</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+<script>window.onerror=function(m,s,l){console.error('ERR:',m,'L'+l);return true;};</script>
+<style>
+:root{
+  --navy:#1C1C1E; --blue:#007AFF; --red:#FF3B30; --bg:#F2F2F7;
+  --green:#34C759; --gold:#FFD60A; --gray:#8E8E93;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);margin:0;color:var(--navy);}
+.wrap{max-width:760px;margin:0 auto;min-height:100vh;background:var(--bg);padding-bottom:60px;}
+.nav{display:flex;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-bottom:.5px solid #D1D1D6;position:sticky;top:0;z-index:1000;}
+.tab{flex:1;padding:16px 0;border:none;background:none;font-size:14px;font-weight:800;color:#8E8E93;cursor:pointer;}
+.tab.on{color:var(--blue);border-bottom:2.5px solid var(--blue);}
+.sec{display:none;padding:18px;}
+.sec.on{display:block;}
+.hdr{text-align:center;padding:16px 0 6px;}
+.hdr .eyebrow{font-size:11px;font-weight:800;color:#aaa;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
+.hdr .title{font-size:24px;font-weight:900;color:#002D5E;}
+.bubble{background:#fff;border-radius:18px;padding:18px;box-shadow:0 4px 15px rgba(0,0,0,.04);margin-bottom:14px;}
+.lbl{font-size:12px;font-weight:800;color:#888;margin-bottom:6px;}
+.inp{width:100%;height:46px;border-radius:12px;border:2px solid #D1D1D6;padding:0 13px;font-size:14px;font-weight:600;outline:none;}
+.inp:focus{border-color:var(--blue);}
+.row{display:flex;gap:8px;}
+.row>*{flex:1;}
+.sel{width:100%;height:46px;border-radius:12px;border:2px solid #D1D1D6;padding:0 10px;font-size:13px;font-weight:700;background:#fff;color:var(--navy);}
+.btn{width:100%;height:56px;border-radius:16px;border:none;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:10px;transition:.2s;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-gray{background:#E5E5EA;color:var(--navy);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-gold{background:var(--gold);color:#7A5500;}
+.btn-outline{background:#fff;border:2px solid var(--blue);color:var(--blue);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-sm{height:40px;font-size:13px;border-radius:12px;margin-bottom:0;}
+@keyframes recAnim{from{box-shadow:0 0 10px rgba(255,59,48,.4)}to{box-shadow:0 0 26px rgba(255,59,48,.9)}}
+.rec-pulse{animation:recAnim 1.2s infinite alternate;background:#fff!important;color:var(--red)!important;border:2px solid var(--red)!important;}
+.status-row{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:12px 16px;margin-bottom:12px;border:1px solid #EAEAEA;font-size:13px;font-weight:800;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;}
+.dot-on{background:var(--red);box-shadow:0 0 8px var(--red);animation:blink 1s infinite;}
+.dot-off{background:#ccc;}
+.dot-pause{background:var(--gold);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.wave{display:flex;align-items:center;gap:2px;height:28px;}
+.wbar{width:3px;background:var(--red);border-radius:2px;height:4px;transition:height .05s ease;}
+.notepad{background:#fff;border-radius:16px;padding:6px 18px;border:1px solid #EAEAEA;min-height:160px;max-height:52vh;overflow-y:auto;}
+.chunk{padding:12px 0;border-bottom:1px solid #F2F2F2;}
+.chunk:last-child{border-bottom:none;}
+.chunk .ts{font-size:11px;font-weight:900;color:var(--blue);margin-bottom:4px;}
+.chunk .tx{font-size:15px;line-height:1.6;color:#222;}
+.chunk.pending .tx{color:#bbb;font-style:italic;}
+.chunk.failed .tx{color:var(--red);}
+.chunk.pending .ts{color:#bbb;}
+.break-marker{text-align:center;font-size:12px;font-weight:800;color:#aaa;padding:10px 0;}
+.empty-hint{text-align:center;color:#bbb;font-size:14px;padding:40px 10px;font-weight:700;}
+.banner{background:#FFF9E5;border:2px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:14px;font-size:13px;font-weight:700;color:#7A5500;}
+.banner.err{background:#FFECEC;border-color:var(--red);color:#B00020;}
+.banner.info{background:#EAF3FF;border-color:var(--blue);color:#0056B3;}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.chip{background:#F2F2F7;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:800;color:#555;}
+.arc-card{background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:0 3px 10px rgba(0,0,0,.04);cursor:pointer;border:2px solid transparent;}
+.arc-card:hover{border-color:#DDE9FF;}
+.arc-hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;color:#999;margin-bottom:6px;}
+.arc-title{font-size:16px;font-weight:900;color:#111;}
+.arc-meta{font-size:12px;color:#999;font-weight:700;margin-top:4px;}
+.badge-done{background:#E8F5E9;color:var(--green);border-radius:8px;padding:2px 8px;font-size:11px;font-weight:900;}
+.badge-partial{background:#FFF3CD;color:#946B00;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:900;}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:16px;padding:4px;opacity:.6;}
+.icon-btn:hover{opacity:1;}
+.summary-box{background:#fff;border-radius:16px;padding:20px;border:2px solid var(--gold);margin-top:14px;line-height:1.7;font-size:14.5px;}
+.summary-box h2,.summary-box h3{color:#002D5E;margin:14px 0 8px;}
+.summary-box h2:first-child,.summary-box h3:first-child{margin-top:0;}
+.summary-box ul{padding-left:20px;}
+.summary-box li{margin-bottom:4px;}
+.collapse{cursor:pointer;user-select:none;}
+.info-box{background:#F8F8FA;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#666;line-height:1.6;font-weight:600;}
+.info-box a{color:var(--blue);font-weight:800;}
+.timer-big{font-size:34px;font-weight:900;color:var(--navy);text-align:center;letter-spacing:1px;}
+.cost-note{text-align:center;font-size:11px;color:#aaa;font-weight:700;margin-top:2px;}
+textarea.inp{height:70px;padding:10px 13px;font-size:13px;resize:vertical;text-align:left;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="eyebrow">Continuous Lecture Capture</div>
+    <div class="title">강의 받아쓰기 노트</div>
+  </div>
+  <nav class="nav">
+    <button class="tab on" id="tab-rec" onclick="goTab('rec')">녹음/전사</button>
+    <button class="tab" id="tab-arc" onclick="goTab('arc')">보관함</button>
+  </nav>
+
+  <!-- ══════════════ 녹음 탭 ══════════════ -->
+  <div id="sec-rec" class="sec on">
+
+    <div id="recoveryBanner"></div>
+
+    <div class="bubble" id="setupBox">
+      <div class="lbl">OpenAI API 키 (이 브라우저에만 저장됨)</div>
+      <input type="password" id="apiKey" class="inp" placeholder="sk-..." autocomplete="off">
+      <div class="collapse" onclick="toggleInfo()" style="font-size:12px;color:var(--blue);font-weight:800;margin:8px 0;">ⓘ 키는 어디에 쓰이나요? / 비용은 얼마나 드나요?</div>
+      <div class="info-box" id="infoBox" style="display:none;margin-bottom:10px;">
+        입력한 키는 <b>이 브라우저의 localStorage</b>에만 저장되고, 서버로 전송되지 않습니다(전사/요약 요청은 브라우저에서 OpenAI로 직접 나갑니다).<br>
+        음성 전사(Whisper)는 분당 약 $0.006, 2시간 강의 기준 약 $0.7~1.0 수준입니다. 요약은 훨씬 저렴합니다.<br>
+        키가 없다면 <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a> 에서 발급하세요.
+      </div>
+      <div class="row" style="margin-bottom:10px;">
+        <div>
+          <div class="lbl">강의 제목(선택)</div>
+          <input type="text" id="sessTitle" class="inp" placeholder="예: 9/1 영문법 특강">
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:10px;">
+        <div>
+          <div class="lbl">청크 길이</div>
+          <select id="chunkSec" class="sel">
+            <option value="20">20초 (더 실시간, 호출 많음)</option>
+            <option value="30" selected>30초 (권장)</option>
+            <option value="45">45초</option>
+            <option value="60">60초 (호출 적음)</option>
+          </select>
+        </div>
+        <div>
+          <div class="lbl">전사 모델</div>
+          <select id="sttModel" class="sel">
+            <option value="whisper-1" selected>whisper-1 (안정적/저렴)</option>
+            <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe (더 정확)</option>
+            <option value="gpt-4o-transcribe">gpt-4o-transcribe (가장 정확)</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <div class="lbl">언어 힌트</div>
+          <select id="langHint" class="sel">
+            <option value="" selected>자동 감지 (영어+한국어 혼합 강의 추천)</option>
+            <option value="en">영어로 강제</option>
+            <option value="ko">한국어로 강제</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <div><span class="dot dot-off" id="statusDot"></span><span id="statusTxt">대기 중</span></div>
+      <div class="wave" id="waveBox" style="display:none;">
+        <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+        <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+      </div>
+    </div>
+
+    <div class="bubble" style="text-align:center;">
+      <div class="timer-big" id="timerBig">00:00:00</div>
+      <div class="cost-note" id="metaNote">구간 0개 · 저장된 텍스트 0자</div>
+    </div>
+
+    <button id="startBtn" class="btn btn-blue" onclick="startRecording()">🎙 강의 녹음 시작</button>
+    <div class="row" id="liveCtrls" style="display:none;">
+      <button id="pauseBtn" class="btn btn-gold" onclick="togglePause()">⏸ 일시정지</button>
+      <button id="stopBtn" class="btn btn-red" onclick="stopRecording()">■ 종료 및 저장</button>
+    </div>
+
+    <div class="bubble" style="margin-top:16px;">
+      <div class="lbl" style="display:flex;justify-content:space-between;">
+        <span>실시간 받아쓰기</span>
+        <span id="lastSaved" style="color:#bbb;font-weight:700;">-</span>
+      </div>
+      <div class="notepad" id="notepad">
+        <div class="empty-hint">녹음을 시작하면 30초 안팎마다<br>여기에 전사된 텍스트가 쌓입니다.</div>
+      </div>
+    </div>
+
+    <div id="postRecBox" style="display:none;">
+      <div class="row">
+        <button class="btn btn-outline btn-sm" onclick="downloadTranscript()">📄 전체 텍스트 다운로드</button>
+        <button class="btn btn-outline btn-sm" onclick="copyTranscript()">📋 복사</button>
+      </div>
+      <button class="btn btn-green" style="margin-top:10px;" onclick="generateSummary()" id="summBtn">🤖 요약 생성</button>
+      <div id="summaryArea"></div>
+    </div>
+
+    <div id="retryQueueBox"></div>
+  </div>
+
+  <!-- ══════════════ 보관함 탭 ══════════════ -->
+  <div id="sec-arc" class="sec">
+    <div id="arcList"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// 상태
+// ═══════════════════════════════════════════════════════════════════
+const LS_SESSIONS = 'lecnote_sessions_v1';
+const LS_APIKEY   = 'lecnote_api_key';
+const IDB_NAME    = 'lecnote_audio_v1';
+const IDB_STORE   = 'chunks';
+
+let stream=null, mediaRec=null, audioCtx=null, analyser=null, dataArr=null, animId=null;
+let session=null;          // 현재 진행 중인 세션 객체
+let recState='idle';       // idle | recording | paused
+let seqCounter=0;
+let elapsedMs=0, tickInt=null, lastTick=0;
+let wakeLock=null;
+let pendingCount=0;
+
+function $(id){return document.getElementById(id);}
+
+// ═══════════════════════════════════════════════════════════════════
+// IndexedDB (원본 오디오 청크 임시 보관 → 전사 성공하면 삭제)
+// ═══════════════════════════════════════════════════════════════════
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(IDB_NAME,1);
+    req.onupgradeneeded = ()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)){
+        const st=db.createObjectStore(IDB_STORE,{keyPath:'key'});
+        st.createIndex('sessionId','sessionId',{unique:false});
+      }
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function idbPut(obj){
+  const db=await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(obj);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function idbDelete(key){
+  const db=await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function idbGetAll(){
+  const db=await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(IDB_STORE,'readonly');
+    const req=tx.objectStore(IDB_STORE).getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 세션 저장 (localStorage)
+// ═══════════════════════════════════════════════════════════════════
+function getSessions(){ try{return JSON.parse(localStorage.getItem(LS_SESSIONS)||'[]');}catch{return [];} }
+function setSessions(arr){ try{localStorage.setItem(LS_SESSIONS, JSON.stringify(arr));}catch(e){ console.warn('localStorage 저장 실패(용량 초과 가능)', e); } }
+function saveSession(s){
+  let arr=getSessions();
+  const i=arr.findIndex(x=>x.id===s.id);
+  if(i!==-1) arr[i]=s; else arr.unshift(s);
+  setSessions(arr);
+  $('lastSaved').innerText='자동저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 초기화
+// ═══════════════════════════════════════════════════════════════════
+window.addEventListener('load', async ()=>{
+  const saved = localStorage.getItem(LS_APIKEY);
+  if(saved) $('apiKey').value = saved;
+  $('apiKey').addEventListener('change', ()=>{ try{localStorage.setItem(LS_APIKEY,$('apiKey').value.trim());}catch{} });
+  await checkRecovery();
+  renderArchive();
+  window.addEventListener('beforeunload', (e)=>{
+    if(recState==='recording'||recState==='paused'){ e.preventDefault(); e.returnValue=''; }
+  });
+  document.addEventListener('visibilitychange', async ()=>{
+    if(document.visibilityState==='visible' && (recState==='recording') && wakeLock===null){
+      try{ wakeLock = await navigator.wakeLock.request('screen'); }catch{}
+    }
+  });
+});
+
+async function checkRecovery(){
+  let all=[];
+  try{ all = await idbGetAll(); }catch(e){ console.warn('IDB read fail', e); return; }
+  const pending = all.filter(c=>c.status==='pending'||c.status==='failed');
+  if(pending.length===0) return;
+  const bySession = {};
+  pending.forEach(c=>{ (bySession[c.sessionId]=bySession[c.sessionId]||[]).push(c); });
+  const sessions=getSessions();
+  let html = `<div class="banner">⚠️ 이전에 처리되지 못한 오디오 구간이 ${pending.length}개 있습니다. (브라우저가 닫히거나 네트워크가 끊긴 시점의 녹음입니다 — 원본 오디오는 안전하게 보관되어 있어요)`;
+  html += `<div class="chip-row">`;
+  Object.keys(bySession).forEach(sid=>{
+    const meta = sessions.find(s=>s.id===sid);
+    const title = meta ? (meta.title||'제목 없음') : '(알 수 없는 세션)';
+    html += `<span class="chip">${title} · ${bySession[sid].length}개</span>`;
+  });
+  html += `</div><button class="btn btn-blue btn-sm" style="margin-top:10px;" onclick="retryAllPending()">🔁 지금 재시도</button></div>`;
+  $('recoveryBanner').innerHTML = html;
+}
+
+async function retryAllPending(){
+  if(!getApiKey()) return alert('API 키를 먼저 입력해주세요.');
+  const all = await idbGetAll();
+  const pending = all.filter(c=>c.status==='pending'||c.status==='failed');
+  $('recoveryBanner').innerHTML = `<div class="banner info">🔁 ${pending.length}개 재처리 중... 완료되면 보관함에서 확인하세요.</div>`;
+  const sessions = getSessions();
+  for(const c of pending){
+    let sess = sessions.find(s=>s.id===c.sessionId);
+    if(!sess){ sess = {id:c.sessionId,title:'복구된 세션',date:new Date().toLocaleString('ko-KR'),chunks:[],transcript:'',complete:false,summary:''}; sessions.unshift(sess); }
+    await processChunkBlob(sess, c.key, c.seq, c.blob, 0, true);
+  }
+  setSessions(sessions);
+  $('recoveryBanner').innerHTML = `<div class="banner info">✅ 재처리를 마쳤습니다. 보관함 탭에서 확인하세요.</div>`;
+  renderArchive();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 탭
+// ═══════════════════════════════════════════════════════════════════
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.sec').forEach(x=>x.classList.remove('on'));
+  $('tab-'+t).classList.add('on');
+  $('sec-'+t).classList.add('on');
+  if(t==='arc') renderArchive();
+}
+function toggleInfo(){ const b=$('infoBox'); b.style.display = b.style.display==='none'?'block':'none'; }
+function getApiKey(){ return ($('apiKey').value||'').trim(); }
+
+// ═══════════════════════════════════════════════════════════════════
+// 녹음 제어
+// ═══════════════════════════════════════════════════════════════════
+async function startRecording(){
+  const key=getApiKey();
+  if(!key){ $('apiKey').style.borderColor='var(--red)'; $('apiKey').focus(); return alert('OpenAI API 키를 먼저 입력해주세요.'); }
+  try{ localStorage.setItem(LS_APIKEY,key); }catch{}
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){ return alert('마이크 권한이 필요합니다.'); }
+
+  try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){ console.warn('wakeLock 실패', e); }
+
+  session = {
+    id: 'sess_'+Date.now(),
+    title: $('sessTitle').value.trim() || ('강의 '+new Date().toLocaleDateString('ko-KR',{month:'short',day:'numeric'})),
+    date: new Date().toLocaleString('ko-KR'),
+    chunkSec: +$('chunkSec').value,
+    sttModel: $('sttModel').value,
+    langHint: $('langHint').value,
+    chunks: [],       // {seq, tSec, text, status}
+    transcript: '',
+    duration: 0,
+    complete: false,
+    summary: ''
+  };
+  seqCounter=0; pendingCount=0; elapsedMs=0;
+  saveSession(session);
+  $('notepad').innerHTML='';
+  $('postRecBox').style.display='none';
+  $('summaryArea').innerHTML='';
+  $('setupBox').style.display='none';
+  $('recoveryBanner').innerHTML='';
+
+  const types=['audio/webm;codecs=opus','audio/webm','audio/mp4','video/mp4','audio/ogg'];
+  let chosen='';
+  for(const t of types){ try{ if(MediaRecorder.isTypeSupported(t)){chosen=t;break;} }catch{} }
+  try{ mediaRec = chosen? new MediaRecorder(stream,{mimeType:chosen}) : new MediaRecorder(stream); }
+  catch(e){ mediaRec = new MediaRecorder(stream); }
+  const curMime = mediaRec.mimeType || chosen || 'audio/webm';
+
+  mediaRec.ondataavailable = (e)=>{
+    if(!e.data || e.data.size<800) return;
+    const seq = seqCounter++;
+    const key = session.id+'_'+seq;
+    const tSec = seq * session.chunkSec;
+    idbPut({key, sessionId:session.id, seq, blob:e.data, status:'pending'}).catch(err=>console.warn(err));
+    pendingCount++;
+    renderPendingChunk(seq, tSec);
+    updateMeta();
+    processChunkBlob(session, key, seq, e.data, 0, false, curMime);
+  };
+  mediaRec.onstop = ()=>{ finalizeSession(); };
+  mediaRec.start(session.chunkSec*1000);
+
+  recState='recording';
+  startMicVisualizer();
+  startTimer();
+  $('statusDot').className='dot dot-on'; $('statusTxt').innerText='녹음 중';
+  $('startBtn').style.display='none';
+  $('liveCtrls').style.display='flex';
+  $('waveBox').style.display='flex';
+}
+
+function togglePause(){
+  if(!mediaRec) return;
+  if(recState==='recording'){
+    mediaRec.pause(); recState='paused';
+    $('statusDot').className='dot dot-pause'; $('statusTxt').innerText='일시정지';
+    $('pauseBtn').innerText='▶ 재개';
+    stopTimer();
+    insertBreakMarker('일시정지');
+  } else if(recState==='paused'){
+    mediaRec.resume(); recState='recording';
+    $('statusDot').className='dot dot-on'; $('statusTxt').innerText='녹음 중';
+    $('pauseBtn').innerText='⏸ 일시정지';
+    startTimer();
+    insertBreakMarker('재개');
+  }
+}
+
+function stopRecording(){
+  if(!mediaRec) return;
+  if(recState==='paused') mediaRec.resume();
+  mediaRec.stop();
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stopMicVisualizer();
+  stopTimer();
+  recState='idle';
+  if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
+  $('statusDot').className='dot dot-off'; $('statusTxt').innerText='처리 마무리 중...';
+  $('liveCtrls').style.display='none';
+}
+
+function finalizeSession(){
+  session.complete = true;
+  session.duration = elapsedMs;
+  saveSession(session);
+  $('statusTxt').innerText='완료됨 (구간 처리 중이면 잠시 후 반영)';
+  $('startBtn').style.display='block';
+  $('startBtn').innerText='🎙 새 강의 녹음 시작';
+  $('startBtn').onclick=()=>location.reload();
+  $('postRecBox').style.display='block';
+  $('waveBox').style.display='none';
+  $('setupBox').style.display='block';
+  renderArchive();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 타이머
+// ═══════════════════════════════════════════════════════════════════
+function startTimer(){
+  lastTick = Date.now();
+  tickInt = setInterval(()=>{
+    const now=Date.now();
+    elapsedMs += (now-lastTick);
+    lastTick = now;
+    $('timerBig').innerText = fmtTime(elapsedMs);
+  },500);
+}
+function stopTimer(){ clearInterval(tickInt); }
+function fmtTime(ms){
+  const s=Math.floor(ms/1000);
+  const hh=String(Math.floor(s/3600)).padStart(2,'0');
+  const mm=String(Math.floor((s%3600)/60)).padStart(2,'0');
+  const ss=String(s%60).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 마이크 시각화
+// ═══════════════════════════════════════════════════════════════════
+function startMicVisualizer(){
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    analyser.fftSize=64; dataArr=new Uint8Array(analyser.frequencyBinCount);
+    const bars = document.querySelectorAll('#waveBox .wbar');
+    (function draw(){
+      animId=requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArr);
+      bars.forEach((b,i)=>{ b.style.height=Math.max(4,(dataArr[i%dataArr.length]/128)*26)+'px'; });
+    })();
+  }catch(e){ console.warn('visualizer fail', e); }
+}
+function stopMicVisualizer(){
+  cancelAnimationFrame(animId);
+  if(audioCtx && audioCtx.state!=='closed') audioCtx.close();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 청크 전사 처리 (재시도 포함)
+// ═══════════════════════════════════════════════════════════════════
+async function processChunkBlob(sess, idbKey, seq, blob, retry, isRecovery, mimeType){
+  const key = getApiKey();
+  if(!key){ markChunkFailed(sess, idbKey, seq, '(API 키 없음)'); return; }
+  try{
+    const fd = new FormData();
+    const mt = mimeType || blob.type || 'audio/webm';
+    const ext = mt.includes('mp4') ? 'mp4' : (mt.includes('ogg') ? 'ogg' : 'webm');
+    fd.append('file', blob, 'chunk.'+ext);
+    fd.append('model', sess.sttModel || 'whisper-1');
+    if(sess.langHint) fd.append('language', sess.langHint);
+    const prevCtx = (sess.transcript||'').slice(-220);
+    if(prevCtx) fd.append('prompt', prevCtx);
+    fd.append('response_format','json');
+
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions',{
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+key },
+      body: fd
+    });
+    if(!res.ok){
+      const errText = await res.text().catch(()=> '');
+      throw new Error('HTTP '+res.status+' '+errText.slice(0,150));
+    }
+    const data = await res.json();
+    const text = (data.text||'').trim();
+
+    sess.chunks.push({seq, tSec:seq*sess.chunkSec, text, status:'done'});
+    sess.chunks.sort((a,b)=>a.seq-b.seq);
+    sess.transcript = sess.chunks.map(c=>c.text).filter(Boolean).join(' ');
+    saveSession(sess);
+    idbDelete(idbKey).catch(()=>{});
+    pendingCount = Math.max(0,pendingCount-1);
+    updateMeta();
+    if(!isRecovery && session && session.id===sess.id) renderDoneChunk(seq, seq*sess.chunkSec, text);
+  }catch(e){
+    console.warn('chunk 처리 실패', seq, e.message);
+    if(retry < 5){
+      const delay = Math.min(30000, 1500 * Math.pow(2,retry));
+      setTimeout(()=>processChunkBlob(sess, idbKey, seq, blob, retry+1, isRecovery, mimeType), delay);
+    } else {
+      markChunkFailed(sess, idbKey, seq, blob, e.message);
+    }
+  }
+}
+function markChunkFailed(sess, idbKey, seq, blob, reason){
+  // 실패해도 원본 오디오는 IndexedDB에 그대로 남겨둔다 (나중에 수동/자동 재시도용).
+  idbPut({key:idbKey, sessionId:sess.id, seq, blob:blob||null, status:'failed'}).catch(()=>{});
+  if(session && session.id===sess.id) markChunkUIFailed(seq, reason);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 노트패드 렌더
+// ═══════════════════════════════════════════════════════════════════
+function renderPendingChunk(seq, tSec){
+  const np=$('notepad');
+  const hint = np.querySelector('.empty-hint'); if(hint) hint.remove();
+  const div=document.createElement('div');
+  div.className='chunk pending';
+  div.id='chunk-'+seq;
+  div.innerHTML=`<div class="ts">${fmtClock(tSec)}</div><div class="tx">⏳ 전사 처리 중...</div>`;
+  np.appendChild(div);
+  np.scrollTop = np.scrollHeight;
+}
+function renderDoneChunk(seq, tSec, text){
+  const div=$('chunk-'+seq);
+  if(!div) return;
+  div.className='chunk';
+  div.querySelector('.tx').innerText = text || '(무음 구간)';
+  const np=$('notepad'); np.scrollTop = np.scrollHeight;
+}
+function markChunkUIFailed(seq, reason){
+  const div=$('chunk-'+seq);
+  if(!div) return;
+  div.className='chunk failed';
+  div.querySelector('.tx').innerText = '⚠️ 전사 실패: '+(reason||'').slice(0,80)+' (원본 오디오는 보관됨 — 보관함에서 재시도 가능)';
+}
+function insertBreakMarker(label){
+  const np=$('notepad');
+  const div=document.createElement('div');
+  div.className='break-marker';
+  div.innerText = `── ${label} · ${fmtTime(elapsedMs)} ──`;
+  np.appendChild(div);
+  np.scrollTop = np.scrollHeight;
+}
+function fmtClock(totalSec){
+  const h=Math.floor(totalSec/3600), m=Math.floor((totalSec%3600)/60), s=totalSec%60;
+  return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+function updateMeta(){
+  const wc = session ? (session.transcript||'').length : 0;
+  const cc = session ? session.chunks.length : 0;
+  $('metaNote').innerText = `구간 ${cc}개 · 저장된 텍스트 ${wc}자` + (pendingCount>0? ` · 처리 대기 ${pendingCount}개`:'');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 다운로드 / 복사
+// ═══════════════════════════════════════════════════════════════════
+function downloadTranscript(){
+  if(!session) return;
+  const blob = new Blob([session.transcript||''], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=(session.title||'lecture')+'_transcript.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function copyTranscript(){
+  if(!session) return;
+  navigator.clipboard.writeText(session.transcript||'').then(()=>alert('복사되었습니다.')).catch(()=>alert('복사 실패'));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 요약 생성
+// ═══════════════════════════════════════════════════════════════════
+async function generateSummary(){
+  if(!session || !session.transcript){ return alert('전사된 텍스트가 없습니다.'); }
+  const key=getApiKey();
+  if(!key) return alert('API 키가 필요합니다.');
+  const btn=$('summBtn');
+  btn.disabled=true; btn.innerText='🤖 요약 생성 중... (최대 1분 소요)';
+  try{
+    const sys = `너는 영어 강의를 들은 한국인 학습자를 돕는 조교야. 아래는 약 2시간 분량 영어(또는 한/영 혼합) 강의를 실시간 음성인식으로 받아쓴 원문이야. 인식 오류나 문장 끊김이 있을 수 있으니 매끄럽게 이해해서 정리해줘.
+다음 구조로 한국어 마크다운으로 정리해:
+## 전체 요약
+(강의 전체 흐름을 5~10문장으로 한국어로 요약)
+
+## 주제별 정리
+(강의에서 다룬 주제/섹션별로 소제목과 함께 핵심 내용을 정리. 시간 순서대로)
+
+## 핵심 표현 & 어휘
+(강의에서 나온 유용한 영어 표현/단어를 - 영어 표현 : 뜻/뉘앙스 - 형태로 10~25개 정리)
+
+## 예문 / 인용
+(강의 중 나온 인상적이거나 유용한 영어 문장을 원문 그대로 5~10개, 각 문장 아래에 한국어 해석)
+
+마크다운 문법(##, -, ** 등)을 사용해.`;
+    const res = await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {role:'system', content: sys},
+          {role:'user', content: session.transcript}
+        ],
+        temperature: 0.4
+      })
+    });
+    if(!res.ok){
+      const t = await res.text().catch(()=> '');
+      throw new Error('HTTP '+res.status+' '+t.slice(0,200));
+    }
+    const data = await res.json();
+    const summary = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+    session.summary = summary;
+    saveSession(session);
+    renderSummary(summary);
+  }catch(e){
+    alert('요약 생성 실패: '+e.message);
+  }finally{
+    btn.disabled=false; btn.innerText='🤖 요약 다시 생성';
+  }
+}
+function renderSummary(md){
+  const html = (typeof marked!=='undefined') ? marked.parse(md||'') : (md||'').replace(/\n/g,'<br>');
+  $('summaryArea').innerHTML = `<div class="summary-box">${html}</div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn btn-outline btn-sm" onclick="downloadSummary()">📄 요약 다운로드</button>
+      <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(session.summary||'').then(()=>alert('복사됨'))">📋 요약 복사</button>
+    </div>`;
+}
+function downloadSummary(){
+  if(!session || !session.summary) return;
+  const blob = new Blob([session.summary], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=(session.title||'lecture')+'_summary.md';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 보관함
+// ═══════════════════════════════════════════════════════════════════
+function renderArchive(){
+  const arr = getSessions();
+  const box = $('arcList');
+  if(!arr.length){ box.innerHTML = `<p style="text-align:center;color:#999;padding:30px 0;">저장된 강의가 없습니다.</p>`; return; }
+  box.innerHTML = arr.map(s=>{
+    const wc=(s.transcript||'').length;
+    const badge = s.complete ? `<span class="badge-done">완료</span>` : `<span class="badge-partial">진행중/중단됨</span>`;
+    return `<div class="arc-card" onclick="openArchived('${s.id}')">
+      <div class="arc-hd"><span>${s.date||''}</span>${badge}</div>
+      <div class="arc-title">${escapeHtml(s.title||'제목 없음')}</div>
+      <div class="arc-meta">글자수 ${wc}자 · 구간 ${ (s.chunks||[]).length }개 ${ s.summary? '· 요약 있음':'' }</div>
+      <div class="row" style="margin-top:10px;" onclick="event.stopPropagation()">
+        <button class="icon-btn" onclick="viewTranscriptOnly('${s.id}')">📄 텍스트 보기</button>
+        <button class="icon-btn" onclick="deleteSession('${s.id}')">🗑️ 삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function openArchived(id){
+  const s = getSessions().find(x=>x.id===id);
+  if(!s) return;
+  session = s;
+  goTab('rec');
+  $('setupBox').style.display='none';
+  $('startBtn').style.display='block';
+  $('startBtn').innerText='🎙 새 강의 녹음 시작';
+  $('startBtn').onclick=()=>location.reload();
+  $('liveCtrls').style.display='none';
+  $('waveBox').style.display='none';
+  $('timerBig').innerText = fmtTime(s.duration||0);
+  updateMeta();
+  const np=$('notepad'); np.innerHTML='';
+  (s.chunks||[]).forEach(c=>{
+    const div=document.createElement('div');
+    div.className='chunk';
+    div.innerHTML=`<div class="ts">${fmtClock(c.tSec||0)}</div><div class="tx">${escapeHtml(c.text||'')}</div>`;
+    np.appendChild(div);
+  });
+  $('postRecBox').style.display='block';
+  if(s.summary) renderSummary(s.summary); else $('summaryArea').innerHTML='';
+}
+function viewTranscriptOnly(id){ event.stopPropagation(); openArchived(id); }
+function deleteSession(id){
+  event.stopPropagation();
+  if(!confirm('이 강의 기록을 삭제할까요? 복구할 수 없습니다.')) return;
+  const arr = getSessions().filter(x=>x.id!==id);
+  setSessions(arr);
+  renderArchive();
+}
+</script>
+</body>
+</html>
