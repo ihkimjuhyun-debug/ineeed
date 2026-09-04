@@ -62,6 +62,25 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .ck.sil .tx{font-size:11.5px;color:#aaa;font-style:italic;}
 .ck.filt .tx{color:#B8860B;font-style:italic;font-size:13px;}
 .ck.hl{background:#FFF6D6;border-radius:10px;padding-left:10px;padding-right:10px;}
+/* 실시간 한국어 번역 줄 */
+.ko{margin-top:7px;font-size:14px;line-height:1.62;color:#0056B3;background:#F3F8FF;
+  border-left:3px solid #CCE0FF;padding:7px 11px;border-radius:0 9px 9px 0;font-weight:600;}
+.ko.wait{color:#bbb;background:#FAFAFC;border-left-color:#EEE;font-style:italic;font-weight:700;}
+/* 우측 하단 실시간 번역 토글 (재활용 화살표) */
+.fab{position:fixed;right:16px;bottom:20px;width:54px;height:54px;border-radius:50%;border:none;
+  background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.20);cursor:pointer;z-index:60;display:none;
+  align-items:center;justify-content:center;color:#8E8E93;padding:0;}
+.fab.show{display:flex;}
+.fab.on{background:var(--blue);color:#fff;box-shadow:0 5px 20px rgba(0,122,255,.5);}
+.fab svg{width:25px;height:25px;display:block;}
+.fab.on svg{animation:spin 2.6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.fab .bdg2{position:absolute;bottom:-3px;right:-3px;background:#fff;border:1.5px solid #E2E2E8;
+  border-radius:9px;font-size:9.5px;font-weight:900;padding:1px 5px;color:#666;line-height:1.4;}
+.fab.on .bdg2{background:#002D5E;border-color:#002D5E;color:#fff;}
+.fabtip{position:fixed;right:78px;bottom:34px;background:rgba(28,28,30,.92);color:#fff;font-size:12px;
+  font-weight:800;padding:7px 12px;border-radius:10px;z-index:60;display:none;white-space:nowrap;}
+.fabtip.show{display:block;}
 .brk{text-align:center;font-size:12px;font-weight:800;color:#bbb;padding:10px 0;}
 .hint{text-align:center;color:#c0c0c0;font-size:13.5px;padding:34px 10px;font-weight:700;line-height:1.7;}
 .banner{background:#FFF9E5;border:2px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:14px;font-size:13px;font-weight:700;color:#7A5500;}
@@ -167,6 +186,14 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
       </div>
       <input type="range" id="amp" min="1" max="4" step="1" value="2">
       <div class="tip">멀리 있는 교수님 목소리가 자꾸 끊기면 오른쪽으로. 큰 소리가 나도 증폭이 잠깐 줄었다 <b>곧바로 다시 올라옵니다</b>.</div>
+
+      <div class="lbl" style="margin-top:18px;">받아쓰기 간격</div>
+      <div class="seg" id="segChunk">
+        <button data-v="10">10초<br><span style="font-weight:600;font-size:10.5px;">가장 빠름</span></button>
+        <button data-v="20" class="on">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
+        <button data-v="30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
+      </div>
+      <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 API 호출이 늘고, 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
     </div>
 
     <div class="card">
@@ -297,6 +324,17 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
   <div id="sec-arc" class="sec"><div id="arcList"></div></div>
 </div>
 
+<!-- 실시간 한국어 번역 토글 -->
+<div class="fabtip" id="fabTip"></div>
+<button class="fab" id="koFab" title="실시간 한국어 번역" onclick="toggleKo()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 4 23 10 17 10"></polyline>
+    <polyline points="1 20 1 14 7 14"></polyline>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+  </svg>
+  <span class="bdg2">한</span>
+</button>
+
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
    오디오 파이프라인 요점
@@ -326,6 +364,9 @@ let raf=null,peakHold=0,agTimer=null,cutTimer=null,agGain=1,holdUntil=0;
 let session=null,state='idle',seq=0,pending=0,silent=0,chunkStart=0;
 let elapsed=0,tick=null,lastTick=0,wakeLock=null,testing=false,finalizing=false;
 let srcMode='mic',ampLv=2,stdPane='sum',vocHidden=false;
+let chunkSec=20;                        // 받아쓰기 간격(초) — 10 / 20 / 30
+let liveKo=false,koQueue=[],koBusy=0;   // 실시간 한국어 번역
+const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
 
 /* ═══════════ IndexedDB ═══════════ */
 function db(){return new Promise((r,j)=>{const q=indexedDB.open(IDB,1);
@@ -345,8 +386,12 @@ function save(s){const a=sessions();const i=a.findIndex(x=>x.id===s.id);if(i!==-
 window.addEventListener('load',async()=>{
   const k=localStorage.getItem(LS_K);if(k){$('apiKey').value=k;showKeySaved();}
   $('apiKey').addEventListener('change',()=>{const v=$('apiKey').value.trim();if(v){try{localStorage.setItem(LS_K,v);}catch(e){}showKeySaved();}});
-  try{const c=JSON.parse(localStorage.getItem(LS_C)||'{}');if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;}catch(e){}
-  $('amp').value=ampLv;paintSrc();paintAmp();
+  try{const c=JSON.parse(localStorage.getItem(LS_C)||'{}');
+    if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;if(c.chunk)chunkSec=+c.chunk;}catch(e){}
+  $('amp').value=ampLv;paintSrc();paintAmp();paintChunk();
+  $('segChunk').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
+    chunkSec=+b.dataset.v;paintChunk();saveCfg();});
   $('segSrc').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
     if(testing)toggleTest();srcMode=b.dataset.v;paintSrc();saveCfg();});
@@ -358,12 +403,14 @@ window.addEventListener('load',async()=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
   });
+  $('koFab').classList.add('show');paintKoFab();
   await recovery();renderArc();
   window.addEventListener('beforeunload',e=>{if(state!=='idle'){e.preventDefault();e.returnValue='';}});
   document.addEventListener('visibilitychange',async()=>{
     if(document.visibilityState==='visible'&&state==='recording'&&!wakeLock){try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}});
 });
-function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv}));}catch(e){}}
+function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec}));}catch(e){}}
+function paintChunk(){$('segChunk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===chunkSec));}
 function paintSrc(){
   $('segSrc').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===srcMode));
   $('srcTip').innerHTML={
@@ -379,6 +426,7 @@ function goTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.sec').forEach(x=>x.classList.remove('on'));
   $('tab-'+t).classList.add('on');$('sec-'+t).classList.add('on');
+  $('koFab').classList.toggle('show',t==='rec');
   if(t==='arc')renderArc(); if(t==='std')renderStudy();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -492,10 +540,10 @@ function watchCut(){
   clearInterval(cutTimer);
   cutTimer=setInterval(()=>{
     if(state!=='recording')return;
-    const dur=pcmLen/capRate;if(dur<CFG.CHUNK_SEC)return;
+    const dur=pcmLen/capRate;if(dur<chunkSec)return;
     const t=thr(),fs=frTarget/capRate;let trail=0;
     for(let i=frames.length-1;i>=0;i--){if(frames[i]<t)trail+=fs;else break;}
-    if(trail>=CFG.SILENCE_GAP||dur>=CFG.CHUNK_SEC+CFG.MAX_EXTEND)cut(false);
+    if(trail>=CFG.SILENCE_GAP||dur>=chunkSec+extendSec())cut(false);
   },200);
 }
 function cut(isFinal){
@@ -559,7 +607,8 @@ async function start(){
     title:'강의 '+now.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' '+now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' ('+tag+')',
     date:now.toLocaleString('ko-KR'),chunks:[],transcript:'',duration:0,complete:false,
     summary:'',qa:[],suggested:[],followups:[],vocab:null};
-  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;
+  session.chunkSec=chunkSec;
+  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;koQueue=[];
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
@@ -648,7 +697,7 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
     sess.chunks.sort((a,b)=>a.seq-b.seq);
     rebuild(sess);save(sess);del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
-    if(!isRec&&session&&session.id===sess.id)drawDone(n,text,filt);
+    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);if(liveKo&&text&&!filt)enqueueKo(rec);}
   }catch(e){
     console.warn('구간 실패',n,e.message);
     if(retry<5){await new Promise(r=>setTimeout(r,Math.min(30000,1500*Math.pow(2,retry))));
@@ -843,6 +892,73 @@ async function llm(messages,opts){
   return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
 }
 function needKey(){if(!key()){alert('API 키가 필요합니다. 녹음 탭에서 입력해주세요.');return true;}return false;}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   실시간 한국어 번역 (우측 하단 ↻ 버튼)
+   전사가 끝난 구간이 생길 때마다 곧바로 한국어로 옮겨 영어 아래에 붙인다.
+   전사와 별개의 요청이라 받아쓰기 속도를 늦추지 않는다(최대 2개 동시).
+   ═══════════════════════════════════════════════════════════════════════ */
+function toggleKo(){
+  if(!liveKo&&!key()){editKey();return alert('실시간 번역에도 API 키가 필요합니다.');}
+  liveKo=!liveKo;
+  paintKoFab();
+  if(liveKo&&session){
+    bodyChunks(session).forEach(c=>{if(!c.ko)enqueueKo(c);});
+    fabToast('실시간 한국어 번역 켜짐');
+  }else{
+    koQueue=[];fabToast('실시간 번역 꺼짐');
+  }
+}
+function paintKoFab(){
+  const f=$('koFab');if(!f)return;
+  f.classList.toggle('on',liveKo);
+  f.title=liveKo?'실시간 한국어 번역 켜짐 — 누르면 끔':'실시간 한국어 번역 켜기';
+}
+let fabT=null;
+function fabToast(msg){
+  const t=$('fabTip');if(!t)return;
+  t.innerText=msg;t.classList.add('show');
+  clearTimeout(fabT);fabT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function enqueueKo(c){
+  if(!liveKo||!c||!c.text||!c.text.trim()||c.ko)return;
+  if(koQueue.indexOf(c)!==-1)return;
+  koQueue.push(c);paintKoFor(c,true);pumpKo();
+}
+function pumpKo(){
+  while(liveKo&&koBusy<2&&koQueue.length){
+    const c=koQueue.shift();
+    if(!c||c.ko)continue;
+    koBusy++;
+    (async()=>{
+      try{
+        const t=await llm([{role:'system',content:
+          '강의 녹취의 한 조각이다. 자연스러운 한국어로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 한국어면 그대로 출력한다. 전문용어는 한국어 뒤 괄호에 영어 원어를 남긴다.'},
+          {role:'user',content:c.text}],{temp:.2,maxTokens:800});
+        c.ko=(t||'').trim();
+        if(session)save(session);
+      }catch(e){console.warn('번역 실패',e.message);c.ko='';}
+      finally{koBusy--;paintKoFor(c,false);pumpKo();}
+    })();
+  }
+}
+function paintKoFor(c,waiting){
+  if(!c)return;
+  const host=$('ck-'+c.seq);
+  if(host){
+    let el=host.querySelector('.ko');
+    if(!c.ko&&!waiting){if(el)el.remove();}
+    else{
+      if(!el){el=document.createElement('div');el.className='ko';host.appendChild(el);}
+      el.className='ko'+(waiting?' wait':'');
+      el.innerText=waiting?'한국어로 옮기는 중…':c.ko;
+    }
+  }
+  const tl=document.getElementById('tl-'+label(c));
+  if(tl&&c.ko&&!tl.querySelector('.ko')){
+    const d=document.createElement('div');d.className='ko';d.innerText=c.ko;tl.appendChild(d);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    요약
@@ -1128,7 +1244,8 @@ function paintStdPane(){
 function drawFull(){
   const cs=bodyChunks(session);
   $('fullArea').innerHTML=cs.length?cs.map(c=>
-    `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}</div>`).join('')
+    `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}`
+    +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+`</div>`).join('')
     :'<div class="empty">내용이 없습니다.</div>';
 }
 function jumpTo(k){
