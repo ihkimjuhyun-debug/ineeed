@@ -33,12 +33,57 @@ Import 화면에서:
 | 이름 | 값 | 필수 |
 |---|---|---|
 | `OPENAI_API_KEY` | `sk-...` | ✅ 필수 |
-| `APP_PASSCODE` | 원하는 접속 암호 | 강력 권장 |
+| `APP_CODES` | 사람별 접속 코드 목록 (아래 설명) | ✅ 사실상 필수 |
 | `OPENAI_CHAT_MODEL` | 기본 `gpt-4o-mini` | 선택 |
+| `DAILY_LIMIT` | 코드별 하루 요청 수 (기본 0 = 무제한) | 선택 |
+| `RATE_PER_MIN` | 코드별 분당 요청 수 (기본 40) | 선택 |
+| `MAX_CHARS` | 한 요청 최대 글자 수 (기본 140000) | 선택 |
+| `APP_PASSCODE` | 예전 방식의 공용 암호 하나 | 선택 |
 
 Production / Preview / Development 세 곳 모두 체크하고 저장한 뒤 **Redeploy** 하세요. 환경변수는 재배포해야 반영됩니다.
 
-**`APP_PASSCODE` 를 꼭 설정하세요.** 이걸 비워두면 주소를 아는 누구나 내 OpenAI 크레딧을 쓸 수 있습니다. 설정하면 앱이 처음 한 번 암호를 묻고 그 기기에 저장합니다.
+## 사람별 접속 코드 (`APP_CODES`)
+
+한 줄에 쉼표로 이어 붙입니다. 형식은 **`코드:이름`**.
+
+```
+qk1fyl8kqn:주현,ke4m9qvaux:민수,icny5gmnbu:지은
+```
+
+- **코드**는 사용자가 앱에 입력할 값입니다. 추측 못 하게 무작위 10자 이상을 권합니다.
+- **이름**은 나만 보는 표시용입니다. Vercel 로그와 앱 화면("✅ 민수 님으로 사용 중")에 뜹니다.
+- 코드를 하나도 설정하지 않으면 **누구나 쓸 수 있습니다.** 반드시 설정하세요.
+
+### 한 명만 끊기
+
+`APP_CODES` 값에서 그 사람 항목만 지우고 → Save → Redeploy.
+
+```
+qk1fyl8kqn:주현,ke4m9qvaux:민수,icny5gmnbu:지은
+                                 ↑ 지은만 삭제
+qk1fyl8kqn:주현,ke4m9qvaux:민수
+```
+
+다른 사람 코드는 그대로라 **아무도 영향을 받지 않습니다.**
+
+### 누가 얼마나 썼는지 보기
+
+Vercel → **Deployments** → 배포 클릭 → **Runtime Logs** 에 이렇게 찍힙니다.
+
+```
+[chat] 민수 chars=18422 tokens=2914
+[stt]  주현 bytes=642000 model=gpt-4o-transcribe
+```
+
+무료 플랜은 로그를 1시간만 보관합니다. 길게 보려면 Pro가 필요합니다.
+
+### 남용 방지
+
+- `RATE_PER_MIN` — 코드별 분당 요청 제한. 반복 스크립트로 크레딧을 태우는 걸 막습니다.
+- `DAILY_LIMIT` — 코드별 하루 요청 제한. 예: `300`
+- 이 두 개는 서버 인스턴스 메모리에 세는 방식이라 **완벽하지는 않습니다**(인스턴스가 새로 뜨면 초기화). 확실한 상한은 **OpenAI 쪽 월 지출 한도**(platform.openai.com → Settings → Limits)로 거세요.
+
+> **돈을 받고 공유한다면** Vercel Hobby 플랜은 [비상업적·개인 용도로만 제한](https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage)됩니다. Pro로 올려야 합니다.
 
 ## 동작 방식
 

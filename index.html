@@ -277,10 +277,13 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
       <div class="keyrow"><span style="color:var(--green);">🔒 보안 모드 — 키는 서버에 있습니다</span>
         <span style="font-weight:700;color:#ccc;font-size:11px;">입력 불필요</span></div>
       <div id="passWrap" style="display:none;margin-top:12px;">
-        <div class="lbl">접속 암호</div>
-        <input type="password" id="appPass" class="inp" placeholder="관리자가 정한 암호" autocomplete="off">
-        <button class="btn btn-blue btn-sm" style="margin-top:10px;" onclick="savePass()">확인</button>
-        <div class="tip c">이 기기에만 저장됩니다.</div>
+        <div class="lbl">내 접속 코드</div>
+        <input type="password" id="appPass" class="inp" placeholder="발급받은 코드" autocomplete="off">
+        <button class="btn btn-blue btn-sm" style="margin-top:10px;" id="passBtn" onclick="savePass()">확인</button>
+        <div class="tip c">이 기기에만 저장됩니다. 한 번만 넣으면 됩니다.</div>
+      </div>
+      <div id="whoBox" style="display:none;margin-top:10px;font-size:12.5px;font-weight:800;color:#888;">
+        <span id="whoTxt"></span> · <span class="link" onclick="forgetPass()">코드 변경</span>
       </div>
     </div>
 
@@ -563,25 +566,40 @@ const key=()=>{const e=$('apiKey');return e?(e.value||'').trim():'';};
    키를 브라우저에 두지 않고 서버를 거쳐 호출한다.
    /api 가 없으면(로컬 파일로 열었을 때 등) 예전처럼 각자 키를 입력해 직접 호출한다.
    ═══════════════════════════════════════════════════════════════════════ */
-const SRV={on:false,pass:false};
+const SRV={on:false,pass:false,who:''};
 const PASS_K='lecnote_pass';
 const appPass=()=>{try{return localStorage.getItem(PASS_K)||'';}catch(e){return '';}};
-function savePass(){
+async function savePass(){
   const v=($('appPass').value||'').trim();
-  if(!v)return alert('암호를 입력해주세요.');
-  try{localStorage.setItem(PASS_K,v);}catch(e){}
-  paintAuthUI();alert('저장되었습니다.');
+  if(!v)return alert('코드를 입력해주세요.');
+  const b=$('passBtn');b.disabled=true;b.innerText='확인 중...';
+  try{
+    const r=await fetch('/api/health',{cache:'no-store',headers:{'x-app-pass':v}});
+    const j=await r.json();
+    if(!j||!j.you){b.disabled=false;b.innerText='확인';return alert('코드가 올바르지 않습니다. 발급받은 코드를 다시 확인해주세요.');}
+    try{localStorage.setItem(PASS_K,v);}catch(e){}
+    SRV.who=j.you;paintAuthUI();
+  }catch(e){alert('확인 실패: '+e.message);}
+  finally{b.disabled=false;b.innerText='확인';}
+}
+function forgetPass(){
+  if(!confirm('이 기기에 저장된 코드를 지울까요?'))return;
+  try{localStorage.removeItem(PASS_K);}catch(e){}
+  SRV.who='';paintAuthUI();
 }
 function askPass(){
   if(!SRV.pass)return;
   try{localStorage.removeItem(PASS_K);}catch(e){}
-  paintAuthUI();goTab('rec');
-  alert('접속 암호가 필요합니다. 상단에 암호를 입력해주세요.');
+  SRV.who='';paintAuthUI();goTab('rec');
+  alert('접속 코드가 필요합니다. 상단에 코드를 입력해주세요.');
 }
 async function detectServer(){
   try{
-    const r=await fetch('/api/health',{cache:'no-store'});
-    if(r.ok){const j=await r.json();if(j&&j.ok&&j.key){SRV.on=true;SRV.pass=!!j.pass;}}
+    const p=appPass();
+    const r=await fetch('/api/health',{cache:'no-store',headers:p?{'x-app-pass':p}:{}});
+    if(r.ok){const j=await r.json();
+      if(j&&j.ok&&j.key){SRV.on=true;SRV.pass=!!j.pass;SRV.who=j.you||'';
+        if(SRV.pass&&p&&!j.you){try{localStorage.removeItem(PASS_K);}catch(e){}}}}
   }catch(e){/* 로컬 파일 등 — 직접 호출 모드로 */}
   paintAuthUI();
 }
@@ -589,7 +607,10 @@ function paintAuthUI(){
   if(SRV.on){
     $('keyCard').style.display='none';$('keyDone').style.display='none';
     $('srvCard').style.display='block';
-    $('passWrap').style.display=(SRV.pass&&!appPass())?'block':'none';
+    const need=SRV.pass&&!appPass();
+    $('passWrap').style.display=need?'block':'none';
+    $('whoBox').style.display=(SRV.pass&&appPass())?'block':'none';
+    $('whoTxt').innerText=SRV.who?('✅ '+SRV.who+' 님으로 사용 중'):'✅ 코드 확인됨';
   }else{
     $('srvCard').style.display='none';
     if(key()){$('keyCard').style.display='none';$('keyDone').style.display='block';}
@@ -782,7 +803,7 @@ function toWav(f,rate){
 /* ═══════════ 녹음 제어 ═══════════ */
 async function start(){
   if(!hasAuth()){
-    if(SRV.on){$('passWrap').style.display='block';$('appPass').focus();return alert('접속 암호를 먼저 입력해주세요.');}
+    if(SRV.on){$('passWrap').style.display='block';$('appPass').focus();return alert('접속 코드를 먼저 입력해주세요.');}
     $('apiKey').style.borderColor='var(--red)';editKey();$('apiKey').focus();return alert('OpenAI API 키를 먼저 입력해주세요.');}
   if(!SRV.on){try{localStorage.setItem(LS_K,key());}catch(e){}}
   if(testing){testing=false;closeAudio();$('testBtn').innerText='소리 테스트';}
@@ -858,7 +879,7 @@ function segFilter(segs){
 
 /* ═══════════ 전사 ═══════════ */
 async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
-  if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 암호 없음':'API 키 없음');return;}
+  if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 코드 없음':'API 키 없음');return;}
   try{
     const verbose=(model==='whisper-1');
     const fmt=verbose?'verbose_json':'json';
@@ -867,7 +888,7 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
       const b64=await blobToB64(blob);
       res=await fetch('/api/transcribe',{method:'POST',headers:srvHeaders(),
         body:JSON.stringify({audio:b64,model,response_format:fmt})});
-      if(res.status===401){askPass();throw new Error('접속 암호가 필요합니다.');}
+      if(res.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
     }else{
       const fd=new FormData();
       fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');
@@ -1081,7 +1102,7 @@ async function llm(messages,opts){
   if(SRV.on){
     const r=await fetch('/api/chat',{method:'POST',headers:srvHeaders(),
       body:JSON.stringify({messages,temperature:temp,json:!!o.json,max_tokens:o.maxTokens||null})});
-    if(r.status===401){askPass();throw new Error('접속 암호가 필요합니다.');}
+    if(r.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
     if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('HTTP '+r.status+' '+t.slice(0,200));}
     const d=await r.json();
     return d.content||'';
@@ -1097,7 +1118,7 @@ async function llm(messages,opts){
 }
 function needKey(){
   if(hasAuth())return false;
-  alert(SRV.on?'접속 암호를 먼저 입력해주세요. (녹음 탭 상단)':'API 키가 필요합니다. 녹음 탭에서 입력해주세요.');
+  alert(SRV.on?'접속 코드를 먼저 입력해주세요. (녹음 탭 상단)':'API 키가 필요합니다. 녹음 탭에서 입력해주세요.');
   return true;
 }
 
