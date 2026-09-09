@@ -1265,6 +1265,74 @@ function drawSummary(){
 /* ═══════════════════════════════════════════════════════════════════════
    질문 (유튜브 요약 후 이어서 묻기)
    ═══════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════
+   질문 중복 방지
+   같은 문장 하나만 계속 파고들어 비슷한 답이 반복되던 문제를 세 겹으로 막는다.
+    1) 질문을 만들 때 "이미 물어본 질문 목록"과 "이미 인용된 위치"를 알려주고 피하게 한다
+    2) 만들어진 질문을 글자 단위로 비교해 비슷한 건 화면에 올리기 전에 버린다
+    3) 답할 때도 앞선 답변들을 알려주고, 겹치면 반복하지 말고 짧게 끝내라고 지시한다
+   ═══════════════════════════════════════════════════════════════════════ */
+const qNorm=s=>String(s||'').toLowerCase().replace(/[^가-힣a-z0-9]/g,'');
+function qShingles(s){
+  const t=qNorm(s),set=new Set();
+  for(let i=0;i<t.length-1;i++)set.add(t.slice(i,i+2));
+  return set;
+}
+function jac(A,B){
+  if(!A.size||!B.size)return 0;
+  let inter=0;A.forEach(x=>{if(B.has(x))inter++;});
+  return inter/(A.size+B.size-inter);
+}
+/* 질문에서 뜻을 담은 낱말만 남긴다 (조사·의문사·어미 제거)
+   "아프리카 예술의 시작은 언제인가요?" → 아프리카·예술·시작
+   "아프리카 예술은 언제 시작되었나요?" → 아프리카·예술·시작   → 같은 질문으로 잡힌다 */
+const Q_STOP=new Set(['어떤','어떻게','무엇','무슨','언제','어디','누가','why','what','how',
+  '있나','있나요','인가','인가요','일까','했나','하나','하나요','되나','되나요','인지','대해','대하여',
+  '그리고','그것','이것','저것','이런','그런','때문','정도','관련','설명','이야기','부분','내용','경우']);
+function qWords(s){
+  const out=new Set();
+  String(s||'').toLowerCase().split(/[^가-힣a-z0-9]+/).forEach(w=>{
+    if(!w||w.length<2)return;
+    let t=w.replace(/(에서의|으로써|에게서|에서|으로|에게|까지|부터|이라|라는|들의|과의|와의|은|는|이|가|을|를|의|에|와|과|도|만|로|랑|나|든)$/,'');
+    if(t.length<2)t=w;
+    t=t.replace(/(되었|하였|였|었)?(습니다|나요|는가|는지|다면|다는|한다|된다|하다|되다)$/,'');
+    if(t.length<2)t=w;
+    if(Q_STOP.has(t)||Q_STOP.has(w))return;
+    out.add(t.slice(0,6));
+  });
+  return out;
+}
+function qSim(a,b){
+  return Math.max(jac(qShingles(a),qShingles(b)), jac(qWords(a),qWords(b)));
+}
+const isDupQ=(q,list,thr)=>list.some(x=>qSim(q,x)>=(thr||0.45));
+function citedIn(t){
+  const out=[],re=/\[((?:\d{1,2}:)?\d{1,2}:\d{2}|단락\s*\d+)\]/g;let m;
+  while((m=re.exec(String(t||''))))out.push(m[1].replace(/단락\s*/,'단락 '));
+  return out;
+}
+function askedQs(){return((session&&session.qa)||[]).map(x=>x.q);}
+function citedAll(){
+  const set=new Set();
+  ((session&&session.qa)||[]).forEach(x=>citedIn(x.a).forEach(c=>set.add(c)));
+  return [...set];
+}
+function outlineOf(){
+  const md=(session&&session.summary)||'';
+  return (md.match(/^#{2,3}\s*(.+)$/gm)||[]).map(x=>x.replace(/^#{2,3}\s*/,'').trim()).slice(0,20);
+}
+/* 모델이 준 질문 목록에서 중복을 걸러낸다 */
+function dedupeQs(list,against,max){
+  const out=[];
+  (list||[]).forEach(raw=>{
+    const q=String((raw&&raw.q)||raw||'').trim();
+    if(!q||q.length<6)return;
+    if(isDupQ(q,against))return;      // 이미 물어본 것과 겹침
+    if(isDupQ(q,out,0.42))return;     // 이번에 뽑은 것들끼리 겹침
+    out.push(q);
+  });
+  return out.slice(0,max||6);
+}
 async function genQuestions(force){
   if(!session)return;
   if(needKey())return;
@@ -1272,17 +1340,25 @@ async function genQuestions(force){
   const b=$('sugBtn');b.disabled=true;b.innerText='질문 만드는 중...';
   try{
     const base=session.summary||fullText(session).slice(0,20000);
-    const last=(session.qa||[]).slice(-1)[0];
-    const sys=`강의 내용을 바탕으로, 학생이 실제로 궁금해할 만한 후속 질문 5개를 만들어라.
-- 강의에 실제로 답이 들어 있는 질문만 만든다.
+    const asked=askedQs(),cited=citedAll(),outline=outlineOf();
+    const sys=`강의 내용을 바탕으로, 학생이 궁금해할 만한 질문 8개를 만들어라.
+
+절대 규칙:
+- 강의에 실제로 답이 들어 있는 질문만.
+- **8개가 서로 완전히 다른 주제여야 한다.** 같은 문장 하나를 여러 각도로 묻는 질문(예: "언제 시작됐나" / "그때 형태는" / "그 외 재료는")은 결국 같은 답이 나오므로 만들지 마라. 하나만 남겨라.
+- 강의를 처음부터 끝까지 훑어서 **서로 다른 대목**을 겨냥하라. 앞부분에만 몰리면 안 된다.
 - "왜", "어떻게", "무슨 차이"처럼 이해를 깊게 하는 질문 위주.
-- 각 질문은 한국어 한 문장, 25자~45자.
-${last?'- 방금 학생이 "'+last.q+'"라고 물었고 답을 들었다. 그 다음에 자연스럽게 이어질 질문으로 만들어라.':''}
-JSON으로만 답한다: {"questions":["...","...","...","...","..."]}`;
-    const raw=await llm([{role:'system',content:sys},
-      {role:'user',content:base+(last?'\n\n[방금 답변]\n'+last.a.slice(0,1500):'')}],{json:true,temp:.6,maxTokens:500});
-    const j=JSON.parse(raw);
-    session.suggested=(j.questions||[]).slice(0,5);save(session);drawSuggested();
+- 각 질문은 한국어 한 문장, 20~45자.
+${asked.length?`\n[이미 물어본 질문 — 이것들과 의미가 겹치면 안 된다]\n${asked.map(q=>'- '+q).join('\n')}`:''}
+${cited.length?`\n[이미 답변에 쓰인 대목 — 되도록 다른 대목을 겨냥하라]\n${cited.join(', ')}`:''}
+${outline.length?`\n[강의 목차]\n${outline.map(o=>'- '+o).join('\n')}`:''}
+
+각 항목에 q(질문)와 target(어느 대목을 겨냥했는지 한 단어)을 준다.
+JSON으로만 답한다: {"questions":[{"q":"...","target":"..."}]}`;
+    const raw=await llm([{role:'system',content:sys},{role:'user',content:base}],{json:true,temp:.75,maxTokens:800});
+    const j=parseLoose(raw,'q')||JSON.parse(raw);
+    session.suggested=dedupeQs(j.questions||j.items||[],asked,5);
+    save(session);drawSuggested();
   }catch(e){$('sugBox').innerHTML=`<div class="tip">질문 생성 실패: ${esc(e.message)}</div>`;}
   finally{b.disabled=false;b.innerText='✨ AI 질문 생성';}
 }
@@ -1298,26 +1374,49 @@ function askThis(el){
 /* ── 연계 질문 (유튜브식 가로줄) ──
    화면 맨 아래 질문창 위에 붙어 있으므로, 답변이 길어져도 위로 스크롤할 필요가 없다.
    위쪽 대표 질문 5개(session.suggested)는 건드리지 않는다. */
-async function genFollowups(){
+async function genFollowups(wide){
   if(!session)return;
-  const last=(session.qa||[]).slice(-1)[0];if(!last)return;
+  const last=(session.qa||[]).slice(-1)[0];
+  if(!last&&!wide)return;
   const box=$('fupBox');
   box.style.display='block';
-  box.innerHTML=`<div class="fuplbl">이어서 물어보기</div><div class="fups">
+  box.innerHTML=`<div class="fuplbl">${wide?'다른 주제 찾는 중…':'이어서 물어보기'}</div><div class="fups">
     <button class="fchip load">질문 만드는 중…</button><button class="fchip load">·····</button><button class="fchip load">····</button></div>`;
   try{
-    const sys=`학생이 방금 강의에 대해 질문하고 답을 들었다. 이어서 자연스럽게 물어볼 후속 질문 6개를 만들어라.
-- 강의 내용에 실제로 답이 있는 질문만.
-- 짧게. 한국어 한 문장, 12~30자. (버튼에 들어가야 하므로 길면 안 된다)
-- 방금 답변을 더 깊게 파는 질문, 옆 주제로 넓히는 질문을 섞어라.
-- 방금 한 질문과 같은 내용을 반복하지 마라.
-JSON으로만 답한다: {"questions":["...","...","...","...","...","..."]}`;
-    const ctx=(session.summary||'').slice(0,4000);
+    const asked=askedQs(),cited=citedAll(),outline=outlineOf();
+    const sys=`학생이 강의에 대해 질문하고 답을 들었다. 이어서 물어볼 질문 8개를 만들어라.
+
+절대 규칙:
+- 강의에 실제로 답이 있는 질문만.
+- **8개가 서로 다른 대목을 겨냥해야 한다.** 같은 문장 하나를 각도만 바꿔 묻는 질문들(예: "언제 시작됐나" / "그때 형태는" / "그 외 재료는")은 결국 똑같은 답이 나온다. 그런 건 하나만 남기고 나머지는 다른 주제로 채워라.
+- 아래 [이미 물어본 질문]과 의미가 겹치는 질문은 **절대** 만들지 마라. 표현만 바꾼 것도 안 된다.
+- [이미 쓰인 대목]에 없는 부분에서 답이 나오는 질문을 우선하라.
+${wide?'- 방금 대화 주제는 충분히 다뤘다. **완전히 다른 주제**로만 채워라.':'- 절반은 방금 답변을 한 단계 더 깊게, 절반은 강의의 다른 부분으로 넓혀라.'}
+- 짧게. 한국어 한 문장, 12~30자. (버튼에 들어가야 한다)
+
+[이미 물어본 질문]
+${asked.length?asked.map(q=>'- '+q).join('\n'):'(없음)'}
+${cited.length?`\n[이미 쓰인 대목]\n${cited.join(', ')}`:''}
+${outline.length?`\n[강의 목차]\n${outline.map(o=>'- '+o).join('\n')}`:''}
+
+각 항목에 q(질문)와 target(겨냥한 대목)을 준다.
+JSON으로만 답한다: {"questions":[{"q":"...","target":"..."}]}`;
+    const ctx=(session.summary||fullText(session).slice(0,12000)).slice(0,6000);
     const raw=await llm([{role:'system',content:sys},
-      {role:'user',content:`[강의 요약]\n${ctx}\n\n[방금 질문]\n${last.q}\n\n[방금 답변]\n${(last.a||'').slice(0,1800)}`}],
-      {json:true,temp:.7,maxTokens:400});
-    session.followups=(JSON.parse(raw).questions||[]).slice(0,6);
-    save(session);
+      {role:'user',content:`[강의 요약]\n${ctx}`+(last?`\n\n[방금 질문]\n${last.q}\n\n[방금 답변]\n${(last.a||'').slice(0,1200)}`:'')}],
+      {json:true,temp:.8,maxTokens:800});
+    const j=parseLoose(raw,'q')||JSON.parse(raw);
+    let list=dedupeQs(j.questions||j.items||[],asked,6);
+    // 걸러내고 나서 너무 적게 남으면, 완전히 다른 주제로 한 번 더 시도
+    if(list.length<3&&!wide){
+      const raw2=await llm([{role:'system',content:sys.replace(
+        '- 절반은 방금 답변을 한 단계 더 깊게, 절반은 강의의 다른 부분으로 넓혀라.',
+        '- 방금 주제는 이미 충분히 다뤘다. **강의의 완전히 다른 부분**에서만 질문을 만들어라.')},
+        {role:'user',content:`[강의 요약]\n${ctx}`}],{json:true,temp:.9,maxTokens:800});
+      const j2=parseLoose(raw2,'q');
+      if(j2)list=dedupeQs((list.map(q=>({q}))).concat(j2.questions||j2.items||[]),asked,6);
+    }
+    session.followups=list;save(session);
   }catch(e){console.warn('연계 질문 실패',e.message);session.followups=session.followups||[];}
   drawFollowups();
 }
@@ -1326,7 +1425,10 @@ function drawFollowups(){
   const box=$('fupBox');if(!box)return;
   if(!f.length){box.innerHTML='';box.style.display='none';return;}
   box.style.display='block';
-  box.innerHTML=`<div class="fuplbl">이어서 물어보기</div><div class="fups" id="fups">${
+  box.innerHTML=`<div class="fuplbl" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>이어서 물어보기</span>
+      <span class="link" style="font-size:11px;" onclick="genFollowups(true)">🔀 다른 주제로</span>
+    </div><div class="fups" id="fups">${
     f.map(q=>`<button class="fchip" data-q="${esc(q)}" title="${esc(q)}" onclick="askThis(this)">${esc(q)}</button>`).join('')}</div>`;
   const r=$('fups');if(r)r.scrollLeft=0;
 }
@@ -1343,6 +1445,12 @@ async function ask(){
   $('qaList').appendChild(box);box.scrollIntoView({behavior:'smooth',block:'center'});
   try{
     const ctx=pickContext(session,q,CFG.CTX_MAX);
+    const prev=(session.qa||[]).slice(-6);
+    const hist=prev.length
+      ? prev.map(x=>`- "${x.q}" → 인용한 대목: ${citedIn(x.a).join(', ')||'없음'}`).join('\n')
+      : '(없음)';
+    const quoted=[];
+    prev.forEach(x=>{const m=String(x.a||'').match(/원문[:：]\s*"([^"]{10,})"/g);if(m)m.forEach(s=>quoted.push(s.slice(0,80)));});
     const sys=`너는 이 강의를 통째로 들은 조교다. 아래 [강의 원문]에는 각 줄 앞에 위치 표시가 붙어 있다.
 학생의 질문에 대해 원문에 실제로 나온 내용만 근거로 한국어로 답한다.
 
@@ -1354,7 +1462,17 @@ async function ask(){
 규칙:
 - 원문에 없으면 "이 강의에서는 다루지 않았습니다"라고 솔직히 말한다. 절대 지어내지 않는다.
 - 위치 표시는 반드시 [강의 원문]에 실제로 있는 표시만 쓴다.
-- 학생이 영어에 약하므로 어려운 영어 표현은 뜻을 함께 적어준다.`;
+- 학생이 영어에 약하므로 어려운 영어 표현은 뜻을 함께 적어준다.
+
+★ 반복 금지 (가장 중요)
+아래 [앞선 질문들]에서 이미 설명한 내용을 다시 길게 늘어놓지 마라.
+- 이번 질문의 답이 앞의 답과 **같은 대목**에서 나온다면, 먼저 한 문장으로 "이건 앞에서 본 ○○ 대목과 같은 부분입니다"라고 밝히고, **그 대목에서 아직 말하지 않은 세부만** 덧붙여라.
+- 덧붙일 새로운 내용이 정말 없으면, **길게 쓰지 말고 두세 문장으로 솔직히 끝내라.** 같은 문장을 다시 인용해 분량을 채우지 마라.
+- 앞에서 이미 인용한 원문 문장은 다시 인용하지 마라. 인용할 새 문장이 없으면 인용 자체를 생략하라.
+
+[앞선 질문들]
+${hist}
+${quoted.length?`\n[이미 인용한 문장 — 다시 인용 금지]\n${quoted.join('\n')}`:''}`;
     const a=await llm([{role:'system',content:sys},
       {role:'user',content:`[강의 원문]\n${ctx}\n\n[질문]\n${q}`}],{temp:.2,maxTokens:1200});
     box.querySelector('.a').innerHTML=citeHtml(a);
