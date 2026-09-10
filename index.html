@@ -899,6 +899,7 @@ async function start(){
     summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
   session.chunkSec=chunkSec;
   seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;koQueue=[];
+  liveKo=true;paintKoFab();
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
