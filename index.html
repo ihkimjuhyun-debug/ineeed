@@ -1112,13 +1112,25 @@ async function recovery(){
 async function retryAll(){
   if(needKey())return;
   const all=await getAll(),p=all.filter(c=>(c.status==='pending'||c.status==='failed')&&c.blob);
-  $('recovery').innerHTML=`<div class="banner info">${p.length}개 재처리 중...</div>`;
+  let done=0;
+  const paint=()=>{$('recovery').innerHTML=`<div class="banner info">${done}/${p.length}개 재처리 중...</div>`;};
+  paint();
   const ss=sessions();
-  for(const c of p){
+  const sessFor=c=>{
     let s=ss.find(x=>x.id===c.sessionId);
     if(!s){s={id:c.sessionId,kind:'rec',title:'복구된 녹음',date:new Date().toLocaleString('ko-KR'),
       chunks:[],transcript:'',complete:false,summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};ss.unshift(s);}
-    await transcribe(s,c.key,c.seq,c.tSec||0,c.blob,0,true,s.sttModel||currentStt());}
+    return s;};
+  const CONC=3;                     // 한 번에 여러 개씩 처리 — 순서대로 하나씩 기다리면 개수가 많을 때 사실상 멈춘 것처럼 보임
+  let idx=0;
+  async function worker(){
+    while(idx<p.length){
+      const c=p[idx++],s=sessFor(c);
+      await transcribe(s,c.key,c.seq,c.tSec||0,c.blob,0,true,s.sttModel||currentStt());
+      done++;paint();
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(CONC,p.length)},worker));
   setSessions(ss);$('recovery').innerHTML='<div class="banner info">완료 — 보관함에서 확인하세요.</div>';renderArc();
 }
 async function dropAll(){
