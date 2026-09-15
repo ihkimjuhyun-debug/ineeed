@@ -255,6 +255,10 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .vlv.term{background:#EEEBFF;color:var(--purple);}
 .vpos{font-size:10px;font-weight:900;border-radius:6px;padding:2px 6px;margin-left:6px;
   background:#E8F1FF;color:#2A66C8;vertical-align:middle;}
+.vipa{font-size:12px;font-weight:700;color:#999;margin-left:6px;font-family:'Times New Roman',serif;}
+.vspk{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:6px;
+  border-radius:50%;background:#F0F0F4;font-size:12px;cursor:pointer;vertical-align:middle;}
+.vspk:active{background:#E0E0E8;}
 .hidek{filter:blur(5px);cursor:pointer;}
 .vexko{margin-top:3px;}
 /* 문제 언어 전환 */
@@ -1916,12 +1920,13 @@ async function makeVocab(){
 - ko: 한국어 뜻만. 쉼표로 2~4개. **괄호·설명·부연을 절대 넣지 마라.** (예: "거대한, 막대한, 엄청난")
 - note: 뉘앙스나 헷갈리는 점 한 줄. 없으면 빈 문자열. (예: "huge보다 격식 있는 말투")
 - pos: Noun / Verb / Adjective / Adverb / Pronoun / Preposition / Conjunction / Phrase / Idiom / Term 중 하나 (반드시 이 중 하나)
+- ipa: 미국식 발음기호(IPA). 슬래시(/) 없이 기호만. 확실하지 않으면 빈 문자열로 둔다.
 - lv: "중3" "고1" "고2" "수능+" "전문용어" 중 하나
 - ex: 원문에 나온 영어 문장(또는 그 일부). 25단어 이내로 짧게.
 - exko: ex의 한국어 해석
 - active: 학습 대상이면 true, 너무 기초라 뺄 만하면 false
 
-JSON으로만 답한다: {"words":[{"en":"","ko":"","note":"","pos":"","lv":"","ex":"","exko":"","active":true}]}`;
+JSON으로만 답한다: {"words":[{"en":"","ko":"","note":"","pos":"","ipa":"","lv":"","ex":"","exko":"","active":true}]}`;
       let j=null;
       try{
         const raw=await llm([{role:'system',content:sys},{role:'user',content:parts[i]}],{json:true,temp:.3,maxTokens:6000});
@@ -1935,7 +1940,7 @@ JSON으로만 답한다: {"words":[{"en":"","ko":"","note":"","pos":"","lv":"","
       const k=(w.en||'').toLowerCase().trim();
       if(!k||seen.has(k))return;seen.add(k);
       ded.push({en:String(w.en||'').trim(),ko:String(w.ko||'').trim(),note:String(w.note||'').trim(),
-        pos:String(w.pos||'').trim(),lv:String(w.lv||'').trim(),ex:String(w.ex||'').trim(),
+        pos:String(w.pos||'').trim(),ipa:String(w.ipa||'').trim(),lv:String(w.lv||'').trim(),ex:String(w.ex||'').trim(),
         exko:String(w.exko||'').trim(),active:w.active!==false,score:0});
     });
     if(!ded.length)throw new Error('뽑을 만한 단어를 찾지 못했습니다.');
@@ -1968,6 +1973,20 @@ function posLabel(p){
   const k=raw.toLowerCase();
   for(const key in POS_KO)if(k===key||k.indexOf(key)===0)return POS_KO[key];
   return raw;
+}
+/* 발음 듣기 — 브라우저 내장 음성합성(무료, API 비용 없음) */
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)||!text)return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='en-US';u.rate=0.85;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speakVocab(i){
+  const v=session&&session.vocab;if(!v||!v[i])return;
+  speak(v[i].en);
 }
 function vocActive(){return((session&&session.vocab)||[]).filter(w=>w.active!==false);}
 function toggleWord(i){
@@ -2017,6 +2036,8 @@ function drawVocab(){
         <div class="vnum">${i+1}</div>
         <div style="flex:1;min-width:0;">
           <div class="ven">${esc(w.en||'')}
+            ${w.ipa?`<span class="vipa">[${esc(w.ipa)}]</span>`:''}
+            <span class="vspk" onclick="event.stopPropagation();speakVocab(${i})" title="눌러서 발음 듣기">🔊</span>
             ${ps?`<span class="vpos">${esc(ps)}</span>`:''}
             ${w.lv?`<span class="vlv ${lvClass(w.lv)}">${esc(w.lv)}</span>`:''}
             ${sc?`<span class="vsc">${sc>=2?'✓ 마스터':'· 1/2'}</span>`:''}</div>
@@ -2031,8 +2052,8 @@ function drawVocab(){
 }
 function dlVocab(){
   const v=(session&&session.vocab)||[];if(!v.length)return;
-  const csv='﻿'+['영어','한국어','뉘앙스','품사','수준','예문','해석','활성'].join(',')+'\n'+
-    v.map(w=>[w.en,w.ko,w.note,w.pos,w.lv,w.ex,w.exko,w.active!==false?'O':'X']
+  const csv='﻿'+['영어','발음기호','한국어','뉘앙스','품사','수준','예문','해석','활성'].join(',')+'\n'+
+    v.map(w=>[w.en,w.ipa,w.ko,w.note,w.pos,w.lv,w.ex,w.exko,w.active!==false?'O':'X']
       .map(x=>`"${String(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const b=new Blob([csv],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a');
   a.href=u;a.download=(session.title||'lecture')+'_단어장.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
