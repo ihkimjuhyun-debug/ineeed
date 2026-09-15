@@ -57,6 +57,9 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .pad{background:#fff;border-radius:16px;padding:4px 18px;border:1px solid #EAEAEA;min-height:130px;max-height:44vh;overflow-y:auto;}
 .ck{padding:11px 0;border-bottom:1px solid #F4F4F6;}.ck:last-child{border-bottom:none;}
 .ck .ts{font-size:11px;font-weight:900;color:var(--blue);margin-bottom:4px;}
+.lat{font-weight:800;font-size:10px;color:#c0c0c6;margin-left:7px;}
+.lat.slow{color:#FF9500;}
+.lat.bad{color:var(--red);}
 .ck .tx{font-size:15px;line-height:1.65;color:#222;}
 .ck.pend .tx,.ck.pend .ts{color:#c4c4c4;}.ck.pend .tx{font-style:italic;}
 .ck.fail .tx{color:var(--red);font-size:13px;}
@@ -340,7 +343,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
         <button data-v="20" class="on">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
         <button data-v="30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
       </div>
-      <div class="tip">짧을수록 화면에 빨리 뜹니다. 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다.</div>
+      <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 API 호출이 늘고, 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
     </div>
 
     <div class="card">
@@ -543,7 +546,7 @@ const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
 const IS_MOBILE=IS_IOS||/Android/i.test(navigator.userAgent);
 let lastPcmAt=0,stalled=false;          // 화면이 꺼져 녹음이 멈추는 것을 감지
 let liveKo=false,koQueue=[],koBusy=0;   // 실시간 한국어 번역
-const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
+const HARD_EXTEND=6;   // 말이 안 끊겨도 기준 시간 +6초 안에는 무조건 잘라서 보낸다
 
 /* ═══════════ IndexedDB ═══════════ */
 function db(){return new Promise((r,j)=>{const q=indexedDB.open(IDB,1);
@@ -831,7 +834,10 @@ function watchCut(){
     const dur=pcmLen/capRate;if(dur<chunkSec)return;
     const t=thr(),fs=frTarget/capRate;let trail=0;
     for(let i=frames.length-1;i>=0;i--){if(frames[i]<t)trail+=fs;else break;}
-    if(trail>=CFG.SILENCE_GAP||dur>=chunkSec+extendSec())cut(false);
+    // 기준 시간을 넘긴 뒤로는 갈수록 짧은 숨도 "자를 자리"로 인정한다
+    const over=dur-chunkSec;
+    const need=over<2?CFG.SILENCE_GAP:over<4?0.18:0.10;
+    if(trail>=need||over>=HARD_EXTEND)cut(false);
   },200);
 }
 function cut(isFinal){
@@ -902,7 +908,11 @@ async function start(){
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
-  state='recording';lastPcmAt=Date.now();stalled=false;
+  state='recording';lastPcmAt=Date.now();stalled=false;latSum=0;latCnt=0;
+  if(SRV.on){                         // 첫 구간이 콜드스타트를 맞지 않도록 미리 깨움
+    fetch('/api/transcribe',{method:'GET'}).catch(()=>{});
+    fetch('/api/chat',{method:'GET'}).catch(()=>{});
+  }
   startMeter();startAgc();watchCut();startTimer();
   $('dot').className='dot dot-on';$('statusTxt').innerText='녹음 중';
   $('startBtn').style.display='none';$('live').style.display='flex';
@@ -962,7 +972,10 @@ function segFilter(segs){
 }
 
 /* ═══════════ 전사 ═══════════ */
+const T0={};                      // 구간별 전송 시작 시각
+let latSum=0,latCnt=0;            // 평균 응답 시간
 async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
+  if(retry===0)T0[n]=performance.now();
   if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 코드 없음':'API 키 없음');return;}
   try{
     const verbose=(model==='whisper-1');
@@ -992,16 +1005,20 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
       if(raw&&!text)filt=true;
     }else text=(d.text||'').trim();
     if(text){const c=clean(text);if(!c)filt=true;text=c;}
+    const ms=T0[n]?Math.round(performance.now()-T0[n]):0;
+    if(ms){latSum+=ms;latCnt++;}delete T0[n];
     const i=sess.chunks.findIndex(c=>c.seq===n);
-    const rec={seq:n,tSec,text,filtered:filt};
+    const rec={seq:n,tSec,text,filtered:filt,ms};
     if(i!==-1)sess.chunks[i]=rec;else sess.chunks.push(rec);
     sess.chunks.sort((a,b)=>a.seq-b.seq);
     rebuild(sess);save(sess);del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
-    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);if(liveKo&&text&&!filt)enqueueKo(rec);}
+    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt,ms);if(liveKo&&text&&!filt)enqueueKo(rec);}
   }catch(e){
     console.warn('구간 실패',n,e.message);
-    if(retry<6){await new Promise(r=>setTimeout(r,Math.min(6000,500*Math.pow(2,retry))));
+    if(/접속 코드|401/.test(e.message||'')){failed(sess,idbKey,n,tSec,blob,'접속 코드 오류');return;}
+    const WAIT=[400,1000,2500,6000];      // 예전엔 1.5s→3s→6s→12s→24s (최대 46초 낭비)
+    if(retry<WAIT.length){await new Promise(r=>setTimeout(r,WAIT[retry]));
       return transcribe(sess,idbKey,n,tSec,blob,retry+1,isRec,model);}
     failed(sess,idbKey,n,tSec,blob,e.message);
   }
@@ -1029,13 +1046,18 @@ function rebuild(s){
 /* ═══════════ 실시간 노트패드 ═══════════ */
 function noHint(){const h=$('pad').querySelector('.hint');if(h)h.remove();}
 function drawPending(n,t){noHint();const p=$('pad'),d=document.createElement('div');
-  d.className='ck pend';d.id='ck-'+n;d.innerHTML=`<div class="ts">${clk(t)}</div><div class="tx">받아쓰는 중...</div>`;
+  d.className='ck pend';d.id='ck-'+n;
+  d.innerHTML=`<div class="ts">${clk(t)}<span class="lat" id="lat-${n}">전송 중…</span></div><div class="tx">받아쓰는 중...</div>`;
   p.appendChild(d);p.scrollTop=p.scrollHeight;}
 function drawSilent(n,t){noHint();const p=$('pad'),d=document.createElement('div');
   d.className='ck sil';d.id='ck-'+n;d.innerHTML=`<div class="ts"></div><div class="tx">· 무음 (${clk(t)})</div>`;
   p.appendChild(d);p.scrollTop=p.scrollHeight;}
-function drawDone(n,text,filt){
+function drawDone(n,text,filt,ms){
   const d=$('ck-'+n);if(!d)return;
+  const L=$('lat-'+n);
+  if(L&&ms){const s=ms/1000;L.innerText=s.toFixed(1)+'초';
+    L.className='lat'+(s>20?' bad':s>10?' slow':'');}
+  else if(L)L.innerText='';
   if(filt){d.className='ck filt';d.querySelector('.tx').innerText='신뢰도 낮은 구간 — 제외됨';}
   else{
     d.className='ck';d.querySelector('.tx').innerText=text||'(인식된 말 없음)';
@@ -1047,7 +1069,9 @@ function mark(l){const p=$('pad'),d=document.createElement('div');d.className='b
 function updateMeta(){
   const c=session?session.chunks.filter(x=>!x.silent).length:0;
   const w=session?(session.transcript||'').length:0;
-  $('meta').innerText=`구간 ${c}개 · ${w}자`+(pending>0?` · 처리 중 ${pending}`:'');
+  const avg=latCnt?(latSum/latCnt/1000).toFixed(1):null;
+  $('meta').innerText=`구간 ${c}개 · ${w}자`+(pending>0?` · 처리 중 ${pending}`:'')
+    +(avg?` · 평균 ${avg}초`:'');
 }
 
 /* ═══════════ 복구 ═══════════ */
@@ -1242,7 +1266,7 @@ function enqueueKo(c){
   koQueue.push(c);paintKoFor(c,true);pumpKo();
 }
 function pumpKo(){
-  while(liveKo&&koBusy<2&&koQueue.length){
+  while(liveKo&&koBusy<4&&koQueue.length){
     const c=koQueue.shift();
     if(!c||c.ko)continue;
     koBusy++;
