@@ -57,9 +57,6 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .pad{background:#fff;border-radius:16px;padding:4px 18px;border:1px solid #EAEAEA;min-height:130px;max-height:44vh;overflow-y:auto;}
 .ck{padding:11px 0;border-bottom:1px solid #F4F4F6;}.ck:last-child{border-bottom:none;}
 .ck .ts{font-size:11px;font-weight:900;color:var(--blue);margin-bottom:4px;}
-.lat{font-weight:800;font-size:10px;color:#c0c0c6;margin-left:7px;}
-.lat.slow{color:#FF9500;}
-.lat.bad{color:var(--red);}
 .ck .tx{font-size:15px;line-height:1.65;color:#222;}
 .ck.pend .tx,.ck.pend .ts{color:#c4c4c4;}.ck.pend .tx{font-style:italic;}
 .ck.fail .tx{color:var(--red);font-size:13px;}
@@ -343,13 +340,6 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
         <button data-v="20" class="on">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
         <button data-v="30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
       </div>
-      <div class="lbl" style="margin-top:18px;">인식 모델</div>
-      <div class="seg" id="segStt">
-        <button data-v="whisper-1" class="on">빠름 · 안정<br><span style="font-weight:600;font-size:10.5px;">whisper · 권장</span></button>
-        <button data-v="gpt-4o-transcribe">정밀<br><span style="font-weight:600;font-size:10.5px;">느리고 잘릴 수 있음</span></button>
-      </div>
-      <div class="tip" id="sttTip"></div>
-
       <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 API 호출이 늘고, 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
     </div>
 
@@ -526,7 +516,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 const AMP={1:{name:'보통',max:14,hold:900},2:{name:'강하게',max:38,hold:700},
            3:{name:'아주 강하게',max:80,hold:550},4:{name:'최대',max:160,hold:400}};
 const CFG={
-  STT:'whisper-1', STT_FB:'whisper-1',
+  STT:'gpt-4o-transcribe', STT_FB:'whisper-1',
   LLM:'gpt-4o-mini',
   CHUNK_SEC:30, MAX_EXTEND:12, SILENCE_GAP:.30, OVERLAP:.5, TARGET_RMS:.10,
   SPEECH_MULT:1.7, SPEECH_FLOOR:5e-4, SILENT_RATIO:.005, SILENT_PEAK_MULT:2.0,
@@ -552,10 +542,8 @@ const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
              (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IS_MOBILE=IS_IOS||/Android/i.test(navigator.userAgent);
 let lastPcmAt=0,stalled=false;          // 화면이 꺼져 녹음이 멈추는 것을 감지
-let sttModel='whisper-1';               // 인식 모델
-const currentStt=()=>sttModel||'whisper-1';
 let liveKo=false,koQueue=[],koBusy=0;   // 실시간 한국어 번역
-const HARD_EXTEND=6;   // 말이 안 끊겨도 기준 시간 +6초 안에는 무조건 잘라서 보낸다
+const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
 
 /* ═══════════ IndexedDB ═══════════ */
 function db(){return new Promise((r,j)=>{const q=indexedDB.open(IDB,1);
@@ -576,14 +564,11 @@ window.addEventListener('load',async()=>{
   const k=localStorage.getItem(LS_K);if(k){$('apiKey').value=k;showKeySaved();}
   $('apiKey').addEventListener('change',()=>{if(SRV.on)return;const v=$('apiKey').value.trim();if(v){try{localStorage.setItem(LS_K,v);}catch(e){}showKeySaved();}});
   try{const c=JSON.parse(localStorage.getItem(LS_C)||'{}');
-    if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;if(c.chunk)chunkSec=+c.chunk;if(c.stt)sttModel=c.stt;}catch(e){}
-  $('amp').value=ampLv;paintSrc();paintAmp();paintChunk();paintStt();
+    if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;if(c.chunk)chunkSec=+c.chunk;}catch(e){}
+  $('amp').value=ampLv;paintSrc();paintAmp();paintChunk();
   $('segChunk').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
     chunkSec=+b.dataset.v;paintChunk();saveCfg();});
-  $('segStt').querySelectorAll('button').forEach(b=>b.onclick=()=>{
-    if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
-    sttModel=b.dataset.v;paintStt();saveCfg();});
   $('segSrc').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
     if(b.dataset.v!=='mic'&&!CAN_DISP){
@@ -611,19 +596,10 @@ window.addEventListener('load',async()=>{
   await recovery();renderArc();
   window.addEventListener('beforeunload',e=>{if(state!=='idle'){e.preventDefault();e.returnValue='';}});
   document.addEventListener('visibilitychange',async()=>{
-    if(document.visibilityState==='visible'&&state==='recording'){
-      if(!wakeLock){try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
-      if(ac&&ac.state==='suspended'){try{await ac.resume();}catch(e){}}
-    }});
+    if(document.visibilityState==='visible'&&state==='recording'&&!wakeLock){try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}});
 });
-function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec,stt:sttModel}));}catch(e){}}
+function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec}));}catch(e){}}
 function paintChunk(){$('segChunk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===chunkSec));}
-function paintStt(){
-  $('segStt').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===sttModel));
-  $('sttTip').innerHTML=sttModel==='whisper-1'
-    ? '30초 구간을 보통 <b>2~5초</b>에 돌려줍니다. 구간 전체를 빠짐없이 받아씁니다.'
-    : '⚠️ 단어 하나하나는 더 정확할 수 있지만, <b>30초가 넘는 구간에서 내용이 중간에 잘리고</b> 응답이 20~30초씩 걸리는 경우가 있습니다. 10초 간격과 함께 쓰세요.';
-}
 function paintSrc(){
   if(!CAN_DISP&&srcMode!=='mic'){srcMode='mic';saveCfg();}
   $('segSrc').querySelectorAll('button').forEach(b=>{
@@ -846,7 +822,6 @@ function watchCut(){
   clearInterval(cutTimer);
   cutTimer=setInterval(()=>{
     if(state!=='recording')return;
-    if(ac&&ac.state==='suspended'){ac.resume().catch(()=>{});}
     // 소리가 5초 넘게 안 들어오면 녹음이 멈춘 것 (모바일에서 화면을 끄거나 앱을 전환한 경우)
     if(lastPcmAt&&!stalled&&Date.now()-lastPcmAt>5000){
       stalled=true;
@@ -856,10 +831,7 @@ function watchCut(){
     const dur=pcmLen/capRate;if(dur<chunkSec)return;
     const t=thr(),fs=frTarget/capRate;let trail=0;
     for(let i=frames.length-1;i>=0;i--){if(frames[i]<t)trail+=fs;else break;}
-    // 기준 시간을 넘긴 뒤로는 갈수록 짧은 숨도 "자를 자리"로 인정한다
-    const over=dur-chunkSec;
-    const need=over<2?CFG.SILENCE_GAP:over<4?0.18:0.10;
-    if(trail>=need||over>=HARD_EXTEND)cut(false);
+    if(trail>=CFG.SILENCE_GAP||dur>=chunkSec+extendSec())cut(false);
   },200);
 }
 function cut(isFinal){
@@ -881,8 +853,8 @@ function cut(isFinal){
   const p16=resample(pcm,capRate);normalize(p16);
   const wav=toWav(p16,16000),k=session.id+'_'+n;
   put({key:k,sessionId:session.id,seq:n,tSec,blob:wav,status:'pending'}).catch(()=>{});
-  pending++;drawPending(n,tSec,p16.length/16000,wav.size);updateMeta();
-  transcribe(session,k,n,tSec,wav,0,false,session.sttModel||currentStt());
+  pending++;drawPending(n,tSec);updateMeta();
+  transcribe(session,k,n,tSec,wav,0,false,CFG.STT);
   if(isFinal)finish();
 }
 function resample(f,rate){
@@ -925,16 +897,12 @@ async function start(){
     title:'강의 '+now.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' '+now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' ('+tag+')',
     date:now.toLocaleString('ko-KR'),chunks:[],transcript:'',duration:0,complete:false,
     summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
-  session.chunkSec=chunkSec;session.sttModel=currentStt();
+  session.chunkSec=chunkSec;
   seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;koQueue=[];
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
-  state='recording';lastPcmAt=Date.now();stalled=false;latSum=0;latCnt=0;
-  if(SRV.on){                         // 첫 구간이 콜드스타트를 맞지 않도록 미리 깨움
-    fetch('/api/transcribe',{method:'GET'}).catch(()=>{});
-    fetch('/api/chat',{method:'GET'}).catch(()=>{});
-  }
+  state='recording';lastPcmAt=Date.now();stalled=false;
   startMeter();startAgc();watchCut();startTimer();
   $('dot').className='dot dot-on';$('statusTxt').innerText='녹음 중';
   $('startBtn').style.display='none';$('live').style.display='flex';
@@ -994,31 +962,24 @@ function segFilter(segs){
 }
 
 /* ═══════════ 전사 ═══════════ */
-const T0={};                      // 구간별 전송 시작 시각
-let latSum=0,latCnt=0;            // 평균 응답 시간
 async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
-  if(retry===0)T0[n]=performance.now();
   if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 코드 없음':'API 키 없음');return;}
   try{
     const verbose=(model==='whisper-1');
     const fmt=verbose?'verbose_json':'json';
     let res;
-    const ctrl=new AbortController();
-    const to=setTimeout(()=>ctrl.abort(),25000);   // 25초 안에 응답 없으면 끊고 재시도 (무한 대기 방지)
-    try{
-      if(SRV.on){
-        const b64=await blobToB64(blob);
-        res=await fetch('/api/transcribe',{method:'POST',headers:srvHeaders(),signal:ctrl.signal,
-          body:JSON.stringify({audio:b64,model,response_format:fmt})});
-        if(res.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
-      }else{
-        const fd=new FormData();
-        fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');
-        fd.append('response_format',fmt);
-        res=await fetch('https://api.openai.com/v1/audio/transcriptions',
-          {method:'POST',headers:{'Authorization':'Bearer '+key()},signal:ctrl.signal,body:fd});
-      }
-    }finally{clearTimeout(to);}
+    if(SRV.on){
+      const b64=await blobToB64(blob);
+      res=await fetch('/api/transcribe',{method:'POST',headers:srvHeaders(),
+        body:JSON.stringify({audio:b64,model,response_format:fmt})});
+      if(res.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
+    }else{
+      const fd=new FormData();
+      fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');
+      fd.append('response_format',fmt);
+      res=await fetch('https://api.openai.com/v1/audio/transcriptions',
+        {method:'POST',headers:{'Authorization':'Bearer '+key()},body:fd});
+    }
     if(!res.ok){
       const txt=await res.text().catch(()=>'');
       if((res.status===400||res.status===404||res.status===403)&&model!==CFG.STT_FB)
@@ -1031,23 +992,18 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
       if(raw&&!text)filt=true;
     }else text=(d.text||'').trim();
     if(text){const c=clean(text);if(!c)filt=true;text=c;}
-    const ms=T0[n]?Math.round(performance.now()-T0[n]):0;
-    if(ms){latSum+=ms;latCnt++;}delete T0[n];
     const i=sess.chunks.findIndex(c=>c.seq===n);
-    const rec={seq:n,tSec,text,filtered:filt,ms};
+    const rec={seq:n,tSec,text,filtered:filt};
     if(i!==-1)sess.chunks[i]=rec;else sess.chunks.push(rec);
     sess.chunks.sort((a,b)=>a.seq-b.seq);
     rebuild(sess);save(sess);del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
-    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt,ms);if(liveKo&&text&&!filt)enqueueKo(rec);}
+    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);if(liveKo&&text&&!filt)enqueueKo(rec);}
   }catch(e){
-    const msg=(e&&e.name==='AbortError')?'응답 시간 초과(25초)':(e.message||'알 수 없는 오류');
-    console.warn('구간 실패',n,msg);
-    if(/접속 코드|401/.test(msg)){failed(sess,idbKey,n,tSec,blob,'접속 코드 오류');return;}
-    const WAIT=[400,1000,2500,6000];      // 예전엔 1.5s→3s→6s→12s→24s (최대 46초 낭비)
-    if(retry<WAIT.length){await new Promise(r=>setTimeout(r,WAIT[retry]));
+    console.warn('구간 실패',n,e.message);
+    if(retry<5){await new Promise(r=>setTimeout(r,Math.min(30000,1500*Math.pow(2,retry))));
       return transcribe(sess,idbKey,n,tSec,blob,retry+1,isRec,model);}
-    failed(sess,idbKey,n,tSec,blob,msg);
+    failed(sess,idbKey,n,tSec,blob,e.message);
   }
 }
 function failed(sess,idbKey,n,tSec,blob,why){
@@ -1072,22 +1028,14 @@ function rebuild(s){
 
 /* ═══════════ 실시간 노트패드 ═══════════ */
 function noHint(){const h=$('pad').querySelector('.hint');if(h)h.remove();}
-function drawPending(n,t,secs,bytes){noHint();const p=$('pad'),d=document.createElement('div');
-  d.className='ck pend';d.id='ck-'+n;
-  const base=(secs?secs.toFixed(0)+'초 오디오':'')+(bytes?' · '+Math.round(bytes/1024)+'KB':'');
-  d.innerHTML=`<div class="ts">${clk(t)}<span class="lat" id="lat-${n}" data-base="${esc(base)}">${esc(base)} · 전송 중…</span></div>`
-    +`<div class="tx">받아쓰는 중...</div>`;
+function drawPending(n,t){noHint();const p=$('pad'),d=document.createElement('div');
+  d.className='ck pend';d.id='ck-'+n;d.innerHTML=`<div class="ts">${clk(t)}</div><div class="tx">받아쓰는 중...</div>`;
   p.appendChild(d);p.scrollTop=p.scrollHeight;}
 function drawSilent(n,t){noHint();const p=$('pad'),d=document.createElement('div');
   d.className='ck sil';d.id='ck-'+n;d.innerHTML=`<div class="ts"></div><div class="tx">· 무음 (${clk(t)})</div>`;
   p.appendChild(d);p.scrollTop=p.scrollHeight;}
-function drawDone(n,text,filt,ms){
+function drawDone(n,text,filt){
   const d=$('ck-'+n);if(!d)return;
-  const L=$('lat-'+n);
-  if(L&&ms){const s=ms/1000,base=L.dataset.base||'';
-    L.innerText=(base?base+' · ':'')+'응답 '+s.toFixed(1)+'초';
-    L.className='lat'+(s>20?' bad':s>10?' slow':'');}
-  else if(L)L.innerText=L.dataset.base||'';
   if(filt){d.className='ck filt';d.querySelector('.tx').innerText='신뢰도 낮은 구간 — 제외됨';}
   else{
     d.className='ck';d.querySelector('.tx').innerText=text||'(인식된 말 없음)';
@@ -1099,9 +1047,7 @@ function mark(l){const p=$('pad'),d=document.createElement('div');d.className='b
 function updateMeta(){
   const c=session?session.chunks.filter(x=>!x.silent).length:0;
   const w=session?(session.transcript||'').length:0;
-  const avg=latCnt?(latSum/latCnt/1000).toFixed(1):null;
-  $('meta').innerText=`구간 ${c}개 · ${w}자`+(pending>0?` · 처리 중 ${pending}`:'')
-    +(avg?` · 평균 ${avg}초`:'');
+  $('meta').innerText=`구간 ${c}개 · ${w}자`+(pending>0?` · 처리 중 ${pending}`:'');
 }
 
 /* ═══════════ 복구 ═══════════ */
@@ -1117,25 +1063,13 @@ async function recovery(){
 async function retryAll(){
   if(needKey())return;
   const all=await getAll(),p=all.filter(c=>(c.status==='pending'||c.status==='failed')&&c.blob);
-  let done=0;
-  const paint=()=>{$('recovery').innerHTML=`<div class="banner info">${done}/${p.length}개 재처리 중...</div>`;};
-  paint();
+  $('recovery').innerHTML=`<div class="banner info">${p.length}개 재처리 중...</div>`;
   const ss=sessions();
-  const sessFor=c=>{
+  for(const c of p){
     let s=ss.find(x=>x.id===c.sessionId);
     if(!s){s={id:c.sessionId,kind:'rec',title:'복구된 녹음',date:new Date().toLocaleString('ko-KR'),
       chunks:[],transcript:'',complete:false,summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};ss.unshift(s);}
-    return s;};
-  const CONC=3;                     // 한 번에 여러 개씩 처리 — 순서대로 하나씩 기다리면 개수가 많을 때 사실상 멈춘 것처럼 보임
-  let idx=0;
-  async function worker(){
-    while(idx<p.length){
-      const c=p[idx++],s=sessFor(c);
-      await transcribe(s,c.key,c.seq,c.tSec||0,c.blob,0,true,s.sttModel||currentStt());
-      done++;paint();
-    }
-  }
-  await Promise.all(Array.from({length:Math.min(CONC,p.length)},worker));
+    await transcribe(s,c.key,c.seq,c.tSec||0,c.blob,0,true,CFG.STT);}
   setSessions(ss);$('recovery').innerHTML='<div class="banner info">완료 — 보관함에서 확인하세요.</div>';renderArc();
 }
 async function dropAll(){
@@ -1308,7 +1242,7 @@ function enqueueKo(c){
   koQueue.push(c);paintKoFor(c,true);pumpKo();
 }
 function pumpKo(){
-  while(liveKo&&koBusy<4&&koQueue.length){
+  while(liveKo&&koBusy<2&&koQueue.length){
     const c=koQueue.shift();
     if(!c||c.ko)continue;
     koBusy++;
