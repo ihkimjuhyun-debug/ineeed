@@ -340,7 +340,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
         <button data-v="20" class="on">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
         <button data-v="30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
       </div>
-      <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 API 호출이 늘고, 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
+      <div class="tip">짧을수록 화면에 빨리 뜹니다. 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다.</div>
     </div>
 
     <div class="card">
@@ -1001,7 +1001,7 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
     if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);if(liveKo&&text&&!filt)enqueueKo(rec);}
   }catch(e){
     console.warn('구간 실패',n,e.message);
-    if(retry<5){await new Promise(r=>setTimeout(r,Math.min(30000,1500*Math.pow(2,retry))));
+    if(retry<6){await new Promise(r=>setTimeout(r,Math.min(6000,500*Math.pow(2,retry))));
       return transcribe(sess,idbKey,n,tSec,blob,retry+1,isRec,model);}
     failed(sess,idbKey,n,tSec,blob,e.message);
   }

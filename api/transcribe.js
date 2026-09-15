@@ -3,7 +3,7 @@
 // 16kHz mono 16bit 기준: 30초 ≈ 1MB, base64 로도 ≈ 1.3MB → Vercel 본문 한도 4.5MB 안쪽.
 
 const ALLOWED = ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe', 'whisper-1'];
-const RATE_PER_MIN = Number(process.env.STT_RATE_PER_MIN || 20); // 코드별 분당 구간 수 (10초 구간이면 분당 6개)
+const RATE_PER_MIN = Number(process.env.STT_RATE_PER_MIN || 60); // 코드별 분당 구간 수 (10초 구간이면 분당 6개, 여유를 넉넉히 둠)
 const MAX_BYTES = 8 * 1024 * 1024;
 
 function parseCodes() {
