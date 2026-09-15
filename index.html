@@ -516,7 +516,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 const AMP={1:{name:'보통',max:14,hold:900},2:{name:'강하게',max:38,hold:700},
            3:{name:'아주 강하게',max:80,hold:550},4:{name:'최대',max:160,hold:400}};
 const CFG={
-  STT:'gpt-4o-transcribe', STT_FB:'whisper-1',
+  STT:'whisper-1', STT_FB:'gpt-4o-transcribe',
   LLM:'gpt-4o-mini',
   CHUNK_SEC:30, MAX_EXTEND:12, SILENCE_GAP:.30, OVERLAP:.5, TARGET_RMS:.10,
   SPEECH_MULT:1.7, SPEECH_FLOOR:5e-4, SILENT_RATIO:.005, SILENT_PEAK_MULT:2.0,
