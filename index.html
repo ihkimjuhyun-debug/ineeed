@@ -36,6 +36,8 @@ textarea.inp{height:auto;min-height:190px;padding:13px;line-height:1.65;font-wei
 .seg{display:flex;background:#EFEFF4;border-radius:12px;padding:3px;gap:3px;}
 .seg button{flex:1;border:none;background:none;border-radius:10px;padding:10px 2px;font-size:12.5px;font-weight:800;color:#777;cursor:pointer;line-height:1.3;}
 .seg button.on{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.10);}
+.seg button.dis{opacity:.35;cursor:not-allowed;}
+.seg button.dis.on{background:none;box-shadow:none;color:#777;}
 .seg2{display:flex;background:#EFEFF4;border-radius:12px;padding:3px;gap:3px;margin-bottom:14px;}
 .seg2 button{flex:1;border:none;background:none;border-radius:10px;padding:9px 2px;font-size:12.5px;font-weight:800;color:#777;cursor:pointer;}
 .seg2 button.on{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.10);}
@@ -66,6 +68,15 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .ko{margin-top:7px;font-size:14px;line-height:1.62;color:#0056B3;background:#F3F8FF;
   border-left:3px solid #CCE0FF;padding:7px 11px;border-radius:0 9px 9px 0;font-weight:600;}
 .ko.wait{color:#bbb;background:#FAFAFC;border-left-color:#EEE;font-style:italic;font-weight:700;}
+/* 문단별 번역 버튼 (화살표 두 개가 납작한 고리를 이루는 모양) */
+.trrow{display:flex;justify-content:flex-end;margin-top:7px;}
+.trbtn{width:31px;height:31px;border-radius:50%;border:1.5px solid #E4E4EA;background:#fff;color:#9A9AA0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex:0 0 auto;}
+.trbtn:hover{border-color:var(--blue);color:var(--blue);background:#F3F8FF;}
+.trbtn.on{border-color:var(--blue);background:var(--blue);color:#fff;}
+.trbtn svg{width:16px;height:16px;display:block;}
+.trbtn.busy{border-color:var(--blue);color:var(--blue);}
+.trbtn.busy svg{animation:spin .9s linear infinite;}
 /* 우측 하단 실시간 번역 토글 (재활용 화살표) */
 .fab{position:fixed;right:16px;bottom:20px;width:54px;height:54px;border-radius:50%;border:none;
   background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.20);cursor:pointer;z-index:60;display:none;
@@ -120,9 +131,11 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .vrow:hover{background:#FAFBFF;}
 .vrow.off{opacity:.42;}
 .vnote{font-size:12px;color:#999;font-weight:600;margin-top:2px;}
-.vtog{font-size:10px;font-weight:900;border-radius:6px;padding:2px 7px;flex:0 0 auto;}
-.vtog.on{background:#E8F7EC;color:#2A9D4E;}
-.vtog.off{background:#F0F0F4;color:#aaa;}
+.vtog{font-size:12px;font-weight:900;border-radius:11px;padding:10px 15px;flex:0 0 auto;
+  border:1.5px solid transparent;cursor:pointer;font-family:inherit;line-height:1.2;align-self:flex-start;}
+.vtog.on{background:#E8F7EC;color:#2A9D4E;border-color:#B0E3C0;}
+.vtog.off{background:#F0F0F4;color:#9A9AA0;border-color:#DEDEE4;}
+.vtog:hover{filter:brightness(.95);}
 .vsc{font-size:10px;font-weight:900;color:#5E5CE6;margin-left:6px;}
 .vhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
 .vmini{background:#F2F2F7;border:none;border-radius:9px;padding:6px 11px;font-size:11.5px;font-weight:800;color:#666;cursor:pointer;font-family:inherit;}
@@ -240,6 +253,26 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .vlv.hard{background:#FFEAEA;color:#C0392B;}
 .vlv.mid{background:#FFF6DA;color:#946B00;}
 .vlv.term{background:#EEEBFF;color:var(--purple);}
+.vpos{font-size:10px;font-weight:900;border-radius:6px;padding:2px 6px;margin-left:6px;
+  background:#E8F1FF;color:#2A66C8;vertical-align:middle;}
+.hidek{filter:blur(5px);cursor:pointer;}
+.vexko{margin-top:3px;}
+/* 문제 언어 전환 */
+.qlang{display:flex;background:#EFEFF4;border-radius:11px;padding:3px;gap:3px;margin-bottom:12px;}
+.qlang button{flex:1;border:none;background:none;border-radius:9px;padding:8px 0;font-size:12.5px;
+  font-weight:800;color:#888;cursor:pointer;font-family:inherit;}
+.qlang button.on{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.qlang button:disabled{opacity:.5;cursor:wait;}
+/* 게임 음성 입력 */
+.vrow2{display:flex;gap:8px;align-items:center;margin-top:14px;}
+.micbtn{width:52px;height:52px;flex:0 0 auto;border-radius:50%;border:2px solid #E4E4EA;background:#fff;
+  color:#9A9AA0;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.micbtn:hover{border-color:var(--blue);color:var(--blue);}
+.micbtn.on{border-color:var(--red);background:var(--red);color:#fff;animation:micp 1.1s infinite alternate;}
+@keyframes micp{from{box-shadow:0 0 0 0 rgba(255,59,48,.45)}to{box-shadow:0 0 0 11px rgba(255,59,48,0)}}
+.micbtn svg{width:23px;height:23px;}
+.mictip{text-align:center;font-size:11.5px;font-weight:800;color:#bbb;margin-top:8px;min-height:16px;}
+.mictip.live{color:var(--red);}
 .tline{padding:9px 0;border-bottom:1px solid #F5F5F7;font-size:14px;line-height:1.7;}
 .tline:last-child{border-bottom:none;}
 .tline .tm{display:inline-block;font-size:11px;font-weight:900;color:var(--blue);background:#F0F6FF;border-radius:6px;padding:1px 7px;margin-right:7px;}
@@ -404,7 +437,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
         <div id="qaList"></div>
         <div class="card" style="position:sticky;bottom:12px;padding:12px;">
           <div id="fupBox" style="display:none;"></div>
-          <textarea id="qInput" class="inp" style="min-height:60px;" placeholder="강의 내용에 대해 무엇이든 물어보세요&#10;예) 왜 최신판 교재를 써야 한다고 했나요?"></textarea>
+          <textarea id="qInput" class="inp" style="min-height:60px;" placeholder="강의 내용에 대해 무엇이든 물어보세요 (Enter로 전송, Shift+Enter 줄바꿈)&#10;예) 왜 최신판 교재를 써야 한다고 했나요?"></textarea>
           <button class="btn btn-blue btn-sm" style="margin-top:8px;" id="askBtn" onclick="ask()">질문하기</button>
         </div>
       </div>
@@ -500,6 +533,15 @@ let session=null,state='idle',seq=0,pending=0,silent=0,chunkStart=0;
 let elapsed=0,tick=null,lastTick=0,wakeLock=null,testing=false,finalizing=false;
 let srcMode='mic',ampLv=2,stdPane='sum',vocHidden=false;
 let chunkSec=20;                        // 받아쓰기 간격(초) — 10 / 20 / 30
+/* 기기·브라우저 능력 감지
+   iOS(아이폰·아이패드)는 Safari 엔진만 쓸 수 있고, 애플이 웹에 시스템 오디오를 열어주지 않는다.
+   그래서 getDisplayMedia 자체가 없다 → "컴퓨터 소리" 모드를 아예 못 쓴다.
+   미리 감지해서 버튼을 잠그고, 대신 쓸 수 있는 방법을 안내한다. */
+const CAN_DISP=!!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia);
+const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
+             (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const IS_MOBILE=IS_IOS||/Android/i.test(navigator.userAgent);
+let lastPcmAt=0,stalled=false;          // 화면이 꺼져 녹음이 멈추는 것을 감지
 let liveKo=false,koQueue=[],koBusy=0;   // 실시간 한국어 번역
 const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
 
@@ -529,11 +571,21 @@ window.addEventListener('load',async()=>{
     chunkSec=+b.dataset.v;paintChunk();saveCfg();});
   $('segSrc').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
+    if(b.dataset.v!=='mic'&&!CAN_DISP){
+      return alert(IS_IOS
+        ? '아이폰·아이패드에서는 다른 앱(줌 등)의 소리를 웹에서 가져올 수 없습니다.\n\n줌을 스피커로 틀고 마이크 모드로 녹음하시거나, 다른 기기에서 녹음해주세요.'
+        : '이 브라우저는 화면·탭 소리 캡처를 지원하지 않습니다.');
+    }
     if(testing)toggleTest();srcMode=b.dataset.v;paintSrc();saveCfg();});
   $('amp').addEventListener('input',()=>{ampLv=+$('amp').value;paintAmp();saveCfg();if(agGain>AMP[ampLv].max)agGain=AMP[ampLv].max;});
   $('segStd').querySelectorAll('button').forEach(b=>b.onclick=()=>{stdPane=b.dataset.v;paintStdPane();});
   $('txtInput').addEventListener('input',updateTxtCount);
-  $('qInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))ask();});
+  $('qInput').addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return;
+    if(e.shiftKey)return;                       // Shift+Enter = 줄바꿈
+    if(e.isComposing||e.keyCode===229)return;   // 한글 조합 중에는 제출하지 않는다
+    e.preventDefault();ask();
+  });
   document.addEventListener('click',e=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
@@ -549,7 +601,22 @@ window.addEventListener('load',async()=>{
 function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec}));}catch(e){}}
 function paintChunk(){$('segChunk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===chunkSec));}
 function paintSrc(){
-  $('segSrc').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===srcMode));
+  if(!CAN_DISP&&srcMode!=='mic'){srcMode='mic';saveCfg();}
+  $('segSrc').querySelectorAll('button').forEach(b=>{
+    const needsDisp=(b.dataset.v!=='mic');
+    b.classList.toggle('dis',needsDisp&&!CAN_DISP);
+    b.classList.toggle('on',b.dataset.v===srcMode);
+  });
+  if(!CAN_DISP){
+    $('srcTip').innerHTML=IS_IOS
+      ? '📱 <b>아이폰·아이패드에서는 "컴퓨터 소리"를 쓸 수 없습니다.</b> 애플이 웹 브라우저에 다른 앱의 소리를 열어주지 않기 때문이며, 크롬을 깔아도 동일합니다.<br><br>'+
+        '<b>온라인 수업(줌)을 녹음하려면:</b><br>'+
+        '① 줌을 <b>스피커로</b> 틀고(이어폰 빼기), 이 페이지를 <b>화면에 계속 띄운 채</b> 마이크로 녹음<br>'+
+        '② 또는 <b>다른 기기</b>(노트북·태블릿·예비폰)에서 이 앱을 열고 스피커 소리를 녹음 — 이쪽이 훨씬 안정적입니다<br>'+
+        '③ 또는 줌 녹화의 <b>자막 파일(.vtt)</b>을 나중에 「텍스트」 탭에 붙여넣기'
+      : '이 브라우저는 화면·탭 소리 캡처를 지원하지 않습니다. 마이크로만 녹음합니다.';
+    return;
+  }
   $('srcTip').innerHTML={
     mic:'교실에서 직접 듣는 강의를 녹음합니다.',
     disp:'화면 공유 창이 뜨면 <b>강의가 재생되는 탭</b>을 고르고 <b>"탭 오디오도 공유"를 반드시 체크</b>하세요. 컴퓨터 원음을 그대로 받아 인식률이 가장 높습니다.',
@@ -651,6 +718,9 @@ async function openAudio(){
     ac.createMediaStreamSource(micStream).connect(mix);
   }
   if(srcMode==='disp'||srcMode==='both'){
+    if(!CAN_DISP)throw new Error(IS_IOS
+      ? '아이폰·아이패드에서는 다른 앱의 소리를 가져올 수 없습니다. 마이크 모드로 바꿔주세요.'
+      : '이 브라우저는 화면·탭 소리 캡처를 지원하지 않습니다.');
     dispStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
     const at=dispStream.getAudioTracks();
     if(!at.length){dispStream.getTracks().forEach(t=>t.stop());dispStream=null;
@@ -733,6 +803,12 @@ async function toggleTest(){
 }
 function onPcm(b){
   if(state!=='recording')return;
+  lastPcmAt=Date.now();
+  if(stalled){ // 소리가 다시 들어오기 시작
+    stalled=false;
+    $('dot').className='dot dot-on';$('statusTxt').innerText='녹음 중';
+    mark('⚠ 화면이 꺼져 녹음이 멈췄던 구간');
+  }
   pcmParts.push(b);pcmLen+=b.length;
   for(let i=0;i<b.length;i++){frAcc+=b[i]*b[i];frN++;
     if(frN>=frTarget){const r=Math.sqrt(frAcc/frN);frames.push(r);nfWin.push(r);if(nfWin.length>1400)nfWin.shift();frAcc=0;frN=0;}}
@@ -746,6 +822,12 @@ function watchCut(){
   clearInterval(cutTimer);
   cutTimer=setInterval(()=>{
     if(state!=='recording')return;
+    // 소리가 5초 넘게 안 들어오면 녹음이 멈춘 것 (모바일에서 화면을 끄거나 앱을 전환한 경우)
+    if(lastPcmAt&&!stalled&&Date.now()-lastPcmAt>5000){
+      stalled=true;
+      $('dot').className='dot dot-ps';
+      $('statusTxt').innerText='⚠ 소리가 안 들어옵니다 — 이 화면을 켜두세요';
+    }
     const dur=pcmLen/capRate;if(dur<chunkSec)return;
     const t=thr(),fs=frTarget/capRate;let trail=0;
     for(let i=frames.length-1;i>=0;i--){if(frames[i]<t)trail+=fs;else break;}
@@ -820,9 +902,11 @@ async function start(){
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
-  state='recording';startMeter();startAgc();watchCut();startTimer();
+  state='recording';lastPcmAt=Date.now();stalled=false;
+  startMeter();startAgc();watchCut();startTimer();
   $('dot').className='dot dot-on';$('statusTxt').innerText='녹음 중';
   $('startBtn').style.display='none';$('live').style.display='flex';
+  if(IS_MOBILE)alert('📱 녹음 중에는 이 화면을 계속 켜둬야 합니다.\n\n다른 앱으로 넘어가거나 화면이 꺼지면 휴대폰이 마이크를 끊어버립니다. 소리가 끊기면 화면에 경고가 뜹니다.');
 }
 function togglePause(){
   if(state==='recording'){state='paused';$('dot').className='dot dot-ps';$('statusTxt').innerText='일시정지';
@@ -953,7 +1037,10 @@ function drawSilent(n,t){noHint();const p=$('pad'),d=document.createElement('div
 function drawDone(n,text,filt){
   const d=$('ck-'+n);if(!d)return;
   if(filt){d.className='ck filt';d.querySelector('.tx').innerText='신뢰도 낮은 구간 — 제외됨';}
-  else{d.className='ck';d.querySelector('.tx').innerText=text||'(인식된 말 없음)';}
+  else{
+    d.className='ck';d.querySelector('.tx').innerText=text||'(인식된 말 없음)';
+    if(text&&!d.querySelector('.trrow'))d.insertAdjacentHTML('beforeend',trBtn(n,false));
+  }
   const p=$('pad');p.scrollTop=p.scrollHeight;}
 function mark(l){const p=$('pad'),d=document.createElement('div');d.className='brk';
   d.innerText=`── ${l} · ${fmt(elapsed)} ──`;p.appendChild(d);p.scrollTop=p.scrollHeight;}
@@ -1171,22 +1258,72 @@ function pumpKo(){
     })();
   }
 }
+/* .ko 줄은 번역 버튼 줄(.trrow) 위에 들어가야 한다 */
+function putKo(host,txt,waiting){
+  if(!host)return null;
+  let el=host.querySelector('.ko');
+  if(!el){
+    el=document.createElement('div');
+    const row=host.querySelector('.trrow');
+    if(row)host.insertBefore(el,row);else host.appendChild(el);
+  }
+  el.className='ko'+(waiting?' wait':'');
+  el.innerText=waiting?'한국어로 옮기는 중…':txt;
+  return el;
+}
 function paintKoFor(c,waiting){
   if(!c)return;
   const host=$('ck-'+c.seq);
   if(host){
-    let el=host.querySelector('.ko');
-    if(!c.ko&&!waiting){if(el)el.remove();}
-    else{
-      if(!el){el=document.createElement('div');el.className='ko';host.appendChild(el);}
-      el.className='ko'+(waiting?' wait':'');
-      el.innerText=waiting?'한국어로 옮기는 중…':c.ko;
-    }
+    if(!c.ko&&!waiting){const el=host.querySelector('.ko');if(el)el.remove();}
+    else{putKo(host,c.ko,waiting);
+      const b=host.querySelector('.trbtn');if(b&&c.ko)b.classList.add('on');}
   }
   const tl=document.getElementById('tl-'+label(c));
   if(tl&&c.ko&&!tl.querySelector('.ko')){
-    const d=document.createElement('div');d.className='ko';d.innerText=c.ko;tl.appendChild(d);
+    putKo(tl,c.ko,false);
+    const b=tl.querySelector('.trbtn');if(b)b.classList.add('on');
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   문단별 번역 — 각 문단 오른쪽 아래의 ⟲ 버튼
+   안 읽히는 문단만 골라서 눌러 한국어로 바꿔 본다. 다시 누르면 접힌다.
+   ═══════════════════════════════════════════════════════════════════════ */
+function trBtn(seq,has){
+  return `<div class="trrow"><button class="trbtn${has?' on':''}" title="한국어로 번역" onclick="translateChunk(${seq},this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="17 1 21 5 17 9"></polyline>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+      <polyline points="7 23 3 19 7 15"></polyline>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+    </svg></button></div>`;
+}
+async function translateChunk(seq,btn){
+  const cs=(session&&session.chunks)||[];
+  const c=cs.find(x=>x.seq===seq);
+  if(!c||!c.text)return;
+  const host=btn.closest('.ck')||btn.closest('.tline');
+  if(c.ko){                                  // 이미 번역돼 있으면 보이기/숨기기만
+    const el=host&&host.querySelector('.ko');
+    if(el){el.remove();btn.classList.remove('on');}
+    else{putKo(host,c.ko,false);btn.classList.add('on');}
+    return;
+  }
+  if(needKey())return;
+  btn.classList.add('busy');
+  putKo(host,'',true);
+  try{
+    const t=await llm([{role:'system',content:
+      '강의 녹취의 한 조각이다. 자연스러운 한국어로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 한국어면 그대로 출력한다. 전문용어는 한국어 뒤 괄호에 영어 원어를 남긴다.'},
+      {role:'user',content:c.text}],{temp:.2,maxTokens:900});
+    c.ko=(t||'').trim();
+    if(session)save(session);
+    putKo(host,c.ko,false);btn.classList.add('on');
+  }catch(e){
+    const el=host&&host.querySelector('.ko');if(el)el.remove();
+    alert('번역 실패: '+e.message);
+  }finally{btn.classList.remove('busy');}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1576,7 +1713,7 @@ JSON으로만 답한다: {"items":[...]}`;
     }
     if(!items.length)throw new Error('문제를 만들지 못했습니다.');
     const short=items.length<n?`요청한 ${n}문제 중 ${items.length}문제를 만들었습니다. 강의 분량에서 낼 수 있는 문제가 그만큼이었습니다.`:'';
-    session.quiz={items,answers:items.map(()=>null),graded:false,score:null,results:null,note:short};
+    session.quiz={items,answers:items.map(()=>null),graded:false,score:null,results:null,note:short,viewLang:'ko'};
     save(session);drawQuiz();
     if(short)alert('문제 생성 완료\n\n'+short);
     $('quizArea').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1625,19 +1762,63 @@ function resetQuiz(){
   qz.answers=qz.items.map(()=>null);qz.graded=false;qz.results=null;qz.score=null;
   save(session);drawQuiz();$('quizArea').scrollIntoView({behavior:'smooth',block:'start'});
 }
+/* ── 문제 언어 전환 ──
+   한국어로 만든 문제를 영어판으로도 볼 수 있게 한다. 한 번 번역하면 저장돼서 다시 안 부른다. */
+async function setQuizLang(l){
+  const qz=session&&session.quiz;if(!qz||!qz.items)return;
+  if(l==='en'&&qz.items.some(it=>!it.en)){
+    if(needKey())return;
+    qz.viewLang='en';drawQuiz();
+    document.querySelectorAll('.qlang button').forEach(b=>{b.disabled=true;});
+    const en=$('qlEn');if(en)en.innerText='번역 중...';
+    try{
+      for(let s=0;s<qz.items.length;s+=8){
+        const part=qz.items.slice(s,s+8).map((it,i)=>({n:s+i,type:it.type,q:it.q,
+          choices:it.choices||[],explain:it.explain||'',answer:it.type==='mc'?'':String(it.answer||'')}));
+        if(part.every(x=>qz.items[x.n].en))continue;
+        const raw=await llm([{role:'system',content:
+`아래 한국어 문제들을 자연스러운 영어로 옮겨라. 문제(q), 보기(choices), 해설(explain), 단답형 모범답안(answer)을 모두 번역한다.
+- 보기 배열은 순서와 개수를 그대로 유지한다 (정답 번호가 바뀌면 안 된다).
+- mc 유형은 answer를 빈 문자열로 둔다.
+- 학술 용어는 자연스러운 영어 표현을 쓴다.
+JSON으로만 답한다: {"items":[{"n":0,"q":"","choices":[],"explain":"","answer":""}]}`},
+          {role:'user',content:JSON.stringify(part)}],{json:true,temp:.2,maxTokens:4000});
+        const j=parseLoose(raw,'q');
+        ((j&&(j.items||j.words))||[]).forEach(r=>{
+          const it=qz.items[+r.n];if(!it)return;
+          it.en={q:r.q||it.q,choices:Array.isArray(r.choices)&&r.choices.length===(it.choices||[]).length?r.choices:(it.choices||[]),
+                 explain:r.explain||it.explain,answer:r.answer||it.answer};
+        });
+      }
+      save(session);
+    }catch(e){alert('영어판 만들기 실패: '+e.message);qz.viewLang='ko';}
+    drawQuiz();return;
+  }
+  qz.viewLang=l;save(session);drawQuiz();
+}
 function drawQuiz(){
   const qz=session&&session.quiz;const box=$('quizArea');if(!box)return;
   const btn=$('quizBtn');if(btn)btn.innerText=(qz&&qz.items&&qz.items.length)?'🔄 문제 새로 만들기':'📝 문제 만들기';
   if(!qz||!qz.items||!qz.items.length){box.innerHTML='';return;}
-  const g=qz.graded,res=qz.results||[];
-  let html=qz.note?`<div class="banner">${esc(qz.note)}</div>`:'';
+  const g=qz.graded,res=qz.results||[],L=qz.viewLang==='en'?'en':'ko';
+  let html=`<div class="qlang">
+    <button class="${L==='ko'?'on':''}" onclick="setQuizLang('ko')">🇰🇷 한국어</button>
+    <button class="${L==='en'?'on':''}" id="qlEn" onclick="setQuizLang('en')">🇺🇸 English</button>
+  </div>`;
+  html+=qz.note?`<div class="banner">${esc(qz.note)}</div>`:'';
   if(g){
     const pct=Math.round(qz.score/qz.items.length*100);
-    const msg=pct>=90?'거의 다 맞았습니다':pct>=70?'잘 이해하고 있습니다':pct>=50?'절반은 잡혔습니다':'다시 한 번 훑어보면 좋겠습니다';
+    const msg=L==='en'
+      ?(pct>=90?'Almost perfect':pct>=70?'Good understanding':pct>=50?'Halfway there':'Worth another look')
+      :(pct>=90?'거의 다 맞았습니다':pct>=70?'잘 이해하고 있습니다':pct>=50?'절반은 잡혔습니다':'다시 한 번 훑어보면 좋겠습니다');
     html+=`<div class="score"><div class="big">${qz.score} / ${qz.items.length}</div>
-      <div class="sub">${pct}점 · ${msg}</div></div>`;
+      <div class="sub">${pct}${L==='en'?'%':'점'} · ${msg}</div></div>`;
   }
-  html+=qz.items.map((it,i)=>{
+  html+=qz.items.map((it0,i)=>{
+    const V=(L==='en'&&it0.en)?it0.en:it0;
+    const it={type:it0.type,answer:it0.answer,cite:it0.cite,
+              q:V.q||it0.q,choices:V.choices||it0.choices,explain:V.explain||it0.explain,
+              modelAns:(it0.type==='mc')?'':(V.answer||it0.answer)};
     const r=res[i],cls=g?(r&&r.ok?' ok':' no'):'';
     let body='';
     if(it.type==='mc'){
@@ -1649,25 +1830,25 @@ function drawQuiz(){
           onchange="setAns(${i},${j})"><span>${esc(c)}</span></label>`;}).join('');
     }else{
       body=`<input type="text" class="inp" ${g?'disabled':''} value="${esc(String(qz.answers[i]||''))}"
-        placeholder="답을 적어보세요 (표현이 조금 달라도 의미가 맞으면 정답)"
+        placeholder="${L==='en'?'Type your answer (close meaning counts)':'답을 적어보세요 (표현이 조금 달라도 의미가 맞으면 정답)'}"
         oninput="setAns(${i},this.value)">`;
     }
     let mark='',expl='';
     if(g){
       const ok=r&&r.ok;
-      mark=`<div class="qzmark ${ok?'ok':'no'}">${ok?'✅ 정답':'❌ 오답'}</div>`;
-      if(it.type!=='mc')expl+=`<div class="qzex"><b>모범 답안</b> ${esc(String(it.answer||''))}${r&&r.fb?'<br>'+esc(r.fb):''}</div>`;
+      mark=`<div class="qzmark ${ok?'ok':'no'}">${ok?(L==='en'?'✅ Correct':'✅ 정답'):(L==='en'?'❌ Incorrect':'❌ 오답')}</div>`;
+      if(it.type!=='mc')expl+=`<div class="qzex"><b>${L==='en'?'Answer':'모범 답안'}</b> ${esc(String(it.modelAns||it.answer||''))}${r&&r.fb?'<br>'+esc(r.fb):''}</div>`;
       const ct=String(it.cite||'').replace(/[\[\]]/g,'').trim();
-      expl+=`<div class="qzex"><b>해설</b> ${esc(it.explain||'')}${
+      expl+=`<div class="qzex"><b>${L==='en'?'Explanation':'해설'}</b> ${esc(it.explain||'')}${
         ct?` <button class="cite" data-k="${esc(ct)}">${esc(ct)}</button>`:''}</div>`;
     }
-    return `<div class="qz${cls}"><div class="qzn">문제 ${i+1} · ${it.type==='mc'?'4지선다':'단답형'}</div>
+    return `<div class="qz${cls}"><div class="qzn">${L==='en'?'Q'+(i+1)+' · '+(it.type==='mc'?'Multiple choice':'Short answer'):'문제 '+(i+1)+' · '+(it.type==='mc'?'4지선다':'단답형')}</div>
       ${mark}<div class="qzq">${esc(it.q)}</div>${body}${expl}</div>`;
   }).join('');
   html+=g
-    ? `<div class="row" style="margin-top:6px;"><button class="btn btn-out btn-sm" onclick="resetQuiz()">🔁 다시 풀기</button>
-       <button class="btn btn-out btn-sm" onclick="dlQuiz()">📄 문제 저장</button></div>`
-    : `<button class="btn btn-green" id="gradeBtn" style="margin-top:6px;" onclick="gradeQuiz()">✅ 채점하기</button>`;
+    ? `<div class="row" style="margin-top:6px;"><button class="btn btn-out btn-sm" onclick="resetQuiz()">${L==='en'?'🔁 Try again':'🔁 다시 풀기'}</button>
+       <button class="btn btn-out btn-sm" onclick="dlQuiz()">${L==='en'?'📄 Save':'📄 문제 저장'}</button></div>`
+    : `<button class="btn btn-green" id="gradeBtn" style="margin-top:6px;" onclick="gradeQuiz()">${L==='en'?'✅ Check answers':'✅ 채점하기'}</button>`;
   box.innerHTML=html;
 }
 function dlQuiz(){
@@ -1734,7 +1915,7 @@ async function makeVocab(){
 - en: 영어 단어/표현 (원형)
 - ko: 한국어 뜻만. 쉼표로 2~4개. **괄호·설명·부연을 절대 넣지 마라.** (예: "거대한, 막대한, 엄청난")
 - note: 뉘앙스나 헷갈리는 점 한 줄. 없으면 빈 문자열. (예: "huge보다 격식 있는 말투")
-- pos: Noun / Verb / Adjective / Adverb / Phrase / Term 중 하나
+- pos: Noun / Verb / Adjective / Adverb / Pronoun / Preposition / Conjunction / Phrase / Idiom / Term 중 하나 (반드시 이 중 하나)
 - lv: "중3" "고1" "고2" "수능+" "전문용어" 중 하나
 - ex: 원문에 나온 영어 문장(또는 그 일부). 25단어 이내로 짧게.
 - exko: ex의 한국어 해석
@@ -1775,6 +1956,19 @@ function lvClass(l){
   if(/수능|고2|고3/.test(l||''))return 'hard';
   return 'mid';
 }
+/* 품사를 한국어 한 단어로 */
+const POS_KO={noun:'명사',verb:'동사',adjective:'형용사',adjectiv:'형용사',adverb:'부사',
+  pronoun:'대명사',preposition:'전치사',conjunction:'접속사',interjection:'감탄사',
+  phrase:'구',idiom:'숙어',expression:'표현',template:'표현',term:'전문용어',
+  determiner:'한정사',article:'관사',number:'수사'};
+function posLabel(p){
+  const raw=String(p||'').trim();
+  if(!raw)return '';
+  if(/[가-힣]/.test(raw))return raw;              // 이미 한국어면 그대로
+  const k=raw.toLowerCase();
+  for(const key in POS_KO)if(k===key||k.indexOf(key)===0)return POS_KO[key];
+  return raw;
+}
 function vocActive(){return((session&&session.vocab)||[]).filter(w=>w.active!==false);}
 function toggleWord(i){
   const v=session&&session.vocab;if(!v||!v[i])return;
@@ -1784,7 +1978,15 @@ function setAllWords(on){
   const v=session&&session.vocab;if(!v)return;
   v.forEach(w=>w.active=on);save(session);drawVocab();
 }
-function toggleHide(){vocHidden=!vocHidden;drawVocab();}
+function toggleHide(){                 // 전체 뜻 가리기/보이기
+  vocHidden=!vocHidden;
+  ((session&&session.vocab)||[]).forEach(w=>w.hid=vocHidden);
+  save(session);drawVocab();
+}
+function toggleHideOne(i){             // 카드 하나만 가리기/보이기
+  const v=session&&session.vocab;if(!v||!v[i])return;
+  v[i].hid=!v[i].hid;save(session);drawVocab();
+}
 function drawVocab(){
   const v=(session&&session.vocab)||null;
   if(!v){$('vocArea').innerHTML='';return;}
@@ -1802,7 +2004,7 @@ function drawVocab(){
       <div class="vhead">
         <div style="font-size:12px;font-weight:800;color:#888;">
           활성 <b style="color:var(--green)">${on}</b> · 비활성 <b style="color:#bbb">${off}</b> · 마스터 <b style="color:var(--purple)">${mastered}</b>
-          <span style="color:#ccc;font-weight:700;"> · 카드를 눌러 켜고 끄기</span>
+          <span style="color:#ccc;font-weight:700;"> · 카드를 누르면 뜻 가리기, 오른쪽 버튼으로 켜고 끄기</span>
         </div>
         <div style="display:flex;gap:6px;">
           <button class="vmini" onclick="setAllWords(true)">전체 활성</button>
@@ -1810,17 +2012,20 @@ function drawVocab(){
         </div>
       </div>
       ${v.map((w,i)=>{
-        const act=w.active!==false,sc=+w.score||0;
-        return `<div class="vrow${act?'':' off'}" onclick="toggleWord(${i})">
+        const act=w.active!==false,sc=+w.score||0,ps=posLabel(w.pos),hid=!!w.hid;
+        return `<div class="vrow${act?'':' off'}" onclick="toggleHideOne(${i})" title="눌러서 뜻 가리기/보이기">
         <div class="vnum">${i+1}</div>
         <div style="flex:1;min-width:0;">
-          <div class="ven">${esc(w.en||'')}<span class="vlv ${lvClass(w.lv)}">${esc(w.lv||w.pos||'')}</span>
+          <div class="ven">${esc(w.en||'')}
+            ${ps?`<span class="vpos">${esc(ps)}</span>`:''}
+            ${w.lv?`<span class="vlv ${lvClass(w.lv)}">${esc(w.lv)}</span>`:''}
             ${sc?`<span class="vsc">${sc>=2?'✓ 마스터':'· 1/2'}</span>`:''}</div>
-          <div class="vko${vocHidden?' hide':''}">${esc(w.ko||'')}</div>
-          ${w.note?`<div class="vnote">${esc(w.note)}</div>`:''}
-          ${w.ex?`<div class="vex">“${esc(w.ex)}”${w.exko?'<br>→ '+esc(w.exko):''}</div>`:''}
+          <div class="vko${hid?' hidek':''}">${esc(w.ko||'')}</div>
+          ${w.note?`<div class="vnote${hid?' hidek':''}">${esc(w.note)}</div>`:''}
+          ${w.ex?`<div class="vex">“${esc(w.ex)}”${w.exko?`<div class="vexko${hid?' hidek':''}">→ ${esc(w.exko)}</div>`:''}</div>`:''}
         </div>
-        <div class="vtog ${act?'on':'off'}">${act?'● 활성':'○ 비활성'}</div>
+        <button class="vtog ${act?'on':'off'}" onclick="event.stopPropagation();toggleWord(${i})"
+          title="${act?'학습에서 빼기':'학습에 넣기'}">${act?'● 활성':'○ 비활성'}</button>
       </div>`;}).join('')}
     </div>`;
 }
@@ -1978,6 +2183,58 @@ function koDiffHtml(targets,user){
     <div class="dlbl r" style="margin-top:14px;">✗ 내가 적은 답</div>
     <div><span class="mine">${esc(user||'(빈칸)')}</span></div>`;
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   음성으로 답하기
+   말하기 버튼을 켜두면 문제가 바뀔 때마다 알아서 듣기 시작한다.
+   말을 마치고 잠깐 조용해지면 자동 제출되고, 아무 말도 없으면 스스로 멈춘다.
+   ═══════════════════════════════════════════════════════════════════════ */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,voiceAuto=false,listening=false,recIdle=null,recDead=null,heard='';
+function micTip(t,live){const e=$('micTip');if(e){e.innerText=t||'';e.className='mictip'+(live?' live':'');}}
+function paintMic(){const b=$('micBtn');if(b)b.classList.toggle('on',listening);}
+function stopVoice(){
+  clearTimeout(recIdle);clearTimeout(recDead);
+  listening=false;
+  if(rec){try{rec.onresult=rec.onend=rec.onerror=null;rec.stop();}catch(e){}rec=null;}
+  paintMic();
+}
+function toggleVoice(){
+  if(!SR)return alert('이 브라우저는 음성 인식을 지원하지 않습니다.\n크롬, 엣지, 사파리에서 사용해주세요.');
+  if(voiceAuto){voiceAuto=false;stopVoice();micTip('말하기 꺼짐');return;}
+  voiceAuto=true;startVoice();
+}
+function startVoice(){
+  if(!SR||!voiceAuto||!G||G.fb||!G.queue.length)return;
+  stopVoice();
+  try{rec=new SR();}catch(e){return;}
+  rec.lang=(G.dir==='enko')?'ko-KR':'en-US';
+  rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+  heard='';
+  rec.onresult=e=>{
+    let t='';
+    for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    heard=t.trim();
+    const inp=$('gInput');if(inp)inp.value=heard;
+    micTip('“'+heard+'”',true);
+    clearTimeout(recDead);
+    clearTimeout(recIdle);
+    recIdle=setTimeout(()=>{stopVoice();if(heard)gCheck();},1500); // 말이 멈추면 자동 제출
+  };
+  rec.onerror=ev=>{
+    if(ev&&ev.error==='not-allowed'){voiceAuto=false;stopVoice();micTip('마이크 권한이 필요합니다');}
+  };
+  rec.onend=()=>{
+    if(!listening)return;
+    listening=false;paintMic();
+    if(heard){gCheck();}
+  };
+  try{rec.start();listening=true;paintMic();micTip((G.dir==='enko'?'한국어 뜻을':'영어 스펠링을')+' 말해주세요…',true);}
+  catch(e){listening=false;paintMic();return;}
+  clearTimeout(recDead);
+  recDead=setTimeout(()=>{                       // 10초 동안 아무 소리 없으면 스스로 종료
+    if(!heard){stopVoice();micTip('소리가 없어 멈췄습니다 — 다시 누르면 이어집니다');}
+  },10000);
+}
 let G=null;
 function startGame(){
   const v=vocActive();
@@ -1995,16 +2252,18 @@ function startGame(){
   drawGame();
 }
 function quitGame(){
+  voiceAuto=false;stopVoice();
   G=null;$('gameOv').classList.remove('show');document.body.style.overflow='';
   save(session);drawVocab();
 }
-function setDir(d){if(!G)return;G.dir=d;G.fb=null;drawGame();}
+function setDir(d){if(!G)return;stopVoice();G.dir=d;G.fb=null;drawGame();}
 function gAnsFor(w){return G.dir==='enko'?(w.ko||''):(w.en||'');}
 function gQFor(w){return G.dir==='enko'?(w.en||''):(w.ko||'');}
 function gCheck(){
   if(!G||!G.queue.length)return;
   const el=$('gInput');const ans=(el?el.value:'').trim();
   if(!ans)return;
+  stopVoice();
   const w=G.queue[0],target=gAnsFor(w);
   const ok=checkAns(ans,target,G.dir==='enko');
   if(ok){
@@ -2073,8 +2332,16 @@ function drawGame(){
   }else{
     body=`<textarea id="gInput" class="gin${useTpl?' long':''}" rows="${useTpl?3:1}" spellcheck="false"
         placeholder="${G.dir==='enko'?'한국어 뜻 입력':'영어 스펠링 정확히 입력'}"></textarea>
-      <div class="ghint">목표까지 남은 정답 <b>${remain}</b>번</div>
-      <button class="btn" style="background:#1C1C1E;color:#fff;" onclick="gCheck()">CHECK (Enter)</button>`;
+      <div class="mictip" id="micTip"></div>
+      <div class="vrow2">
+        ${SR?`<button class="micbtn${listening?' on':''}" id="micBtn" title="음성으로 답하기" onclick="toggleVoice()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+            <path d="M5 11a7 7 0 0 0 14 0"></path><line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="8" y1="22" x2="16" y2="22"></line></svg></button>`:''}
+        <button class="btn" style="background:#1C1C1E;color:#fff;margin:0;" onclick="gCheck()">CHECK (Enter)</button>
+      </div>
+      <div class="ghint" style="margin-top:14px;">목표까지 남은 정답 <b>${remain}</b>번</div>`;
   }
   box.innerHTML=`<div class="gcard">
     <div class="gtop"><button class="gquit" onclick="quitGame()">← 나가기</button>
@@ -2092,8 +2359,11 @@ function drawGame(){
     ${body}</div>`;
   const inp=$('gInput');
   if(inp){
-    inp.focus();
-    inp.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();gCheck();}};
+    if(!voiceAuto)inp.focus();
+    inp.onkeydown=e=>{
+      if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();gCheck();}
+    };
+    if(voiceAuto&&!listening)setTimeout(startVoice,300);   // 다음 문제도 이어서 듣기
   }
   const rb=$('gRetryBtn');
   if(rb){rb.focus();rb.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();gRetry();}};}
@@ -2119,7 +2389,7 @@ function drawFull(){
   const cs=bodyChunks(session);
   $('fullArea').innerHTML=cs.length?cs.map(c=>
     `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}`
-    +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+`</div>`).join('')
+    +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+trBtn(c.seq,!!c.ko)+`</div>`).join('')
     :'<div class="empty">내용이 없습니다.</div>';
 }
 function jumpTo(k){
