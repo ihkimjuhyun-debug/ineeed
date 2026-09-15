@@ -611,7 +611,10 @@ window.addEventListener('load',async()=>{
   await recovery();renderArc();
   window.addEventListener('beforeunload',e=>{if(state!=='idle'){e.preventDefault();e.returnValue='';}});
   document.addEventListener('visibilitychange',async()=>{
-    if(document.visibilityState==='visible'&&state==='recording'&&!wakeLock){try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}});
+    if(document.visibilityState==='visible'&&state==='recording'){
+      if(!wakeLock){try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+      if(ac&&ac.state==='suspended'){try{await ac.resume();}catch(e){}}
+    }});
 });
 function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec,stt:sttModel}));}catch(e){}}
 function paintChunk(){$('segChunk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===chunkSec));}
@@ -843,6 +846,7 @@ function watchCut(){
   clearInterval(cutTimer);
   cutTimer=setInterval(()=>{
     if(state!=='recording')return;
+    if(ac&&ac.state==='suspended'){ac.resume().catch(()=>{});}
     // 소리가 5초 넘게 안 들어오면 녹음이 멈춘 것 (모바일에서 화면을 끄거나 앱을 전환한 경우)
     if(lastPcmAt&&!stalled&&Date.now()-lastPcmAt>5000){
       stalled=true;
