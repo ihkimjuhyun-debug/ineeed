@@ -106,6 +106,21 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .starbtn:hover{border-color:var(--gold);color:#946B00;}
 .starbtn.on{background:#FFF6D6;border-color:var(--gold);color:#946B00;}
 .qno{float:right;font-size:11px;font-weight:900;color:#ccc;margin-top:14px;}
+.starbtn.retry{border-color:var(--red);color:var(--red);background:#FFF5F4;margin-top:12px;}
+.starbtn.retry:hover{background:#FFE9E7;}
+/* 답변별 "더 깊게" 줄 */
+.deepwrap{clear:both;margin-top:12px;padding-top:11px;border-top:1px dashed #ECECF0;}
+.deeps{display:flex;flex-wrap:wrap;gap:6px;}
+.deeps:empty{display:none;}
+.deeps+.deeps{margin-top:6px;}
+.dchip{background:#F4F6FB;border:1.5px solid #E5E8F0;border-radius:999px;padding:7px 13px;
+  font-size:12.5px;font-weight:800;color:#556;cursor:pointer;font-family:inherit;line-height:1.3;}
+.dchip:hover{border-color:var(--blue);color:var(--blue);background:#EEF5FF;}
+.dchip.gen{background:#fff;border-style:dashed;color:#999;}
+.dchip.gen:hover{color:var(--purple);border-color:var(--purple);}
+.dchip.gen:disabled{opacity:.55;cursor:wait;}
+.dchip.alt{background:#F6F2FF;border-color:#E2D9FA;color:#5B4B9B;}
+.dchip.alt:hover{border-color:var(--purple);color:var(--purple);background:#EFE8FF;}
 /* 문제 */
 .qz{background:#fff;border-radius:16px;border:1px solid #EAEAEA;padding:16px 17px;margin-bottom:11px;}
 .qz.ok{border-color:#B7E7C4;background:#F6FFF9;}
@@ -1677,12 +1692,12 @@ function drawFollowups(){
     f.map(q=>`<button class="fchip" data-q="${esc(q)}" title="${esc(q)}" onclick="askThis(this)">${esc(q)}</button>`).join('')}</div>`;
   const r=$('fups');if(r)r.scrollLeft=0;
 }
-async function ask(){
+async function ask(forceQ,baseIdx){
   if(!session)return;
-  const q=($('qInput').value||'').trim();
+  const q=String(forceQ!=null?forceQ:($('qInput').value||'')).trim();
   if(!q)return;
   if(needKey())return;
-  $('qInput').value='';
+  if(forceQ==null)$('qInput').value='';
   const b=$('askBtn');b.disabled=true;
   const id='qa-'+Date.now();
   const box=document.createElement('div');box.className='qa';box.id=id;
@@ -1694,13 +1709,14 @@ async function ask(){
        ③ 같은 주제를 다시 묻는 것인가(= 더 자세히 원함)
        판정 결과에 따라 문맥 범위와 지시가 달라진다. */
     const prev=(session.qa||[]).slice(-6);
-    const last=prev.length?prev[prev.length-1]:null;
+    const pinned=(baseIdx!=null&&session.qa&&session.qa[baseIdx])?session.qa[baseIdx]:null;
+    const last=pinned||(prev.length?prev[prev.length-1]:null);
     const isChoice=looksLikeChoice(q)||(last&&looksLikeChoice(last.q)&&/^[\s]*[1-5][\s,.\/~-]*[1-5]?/.test(q));
     const words=qWords(q);
     const isShort=words.size<=2||q.length<12;
     const wantsMore=/더|자세|구체|풀어|쉽게|예시|정확히|다시/.test(q);
     const simPrev=last?qSim(q,last.q):0;
-    const deepen=!!last&&(simPrev>=0.4||wantsMore||(isShort&&!!last));
+    const deepen=!!pinned||(!!last&&(simPrev>=0.4||wantsMore||(isShort&&!!last)));
 
     /* 짧은 후속("1,2,3,4?", "왜?")은 그 말만으로 강의에서 찾을 수 없다.
        직전 질문을 합쳐서 찾아야 엉뚱한 곳을 뒤지지 않는다. */
@@ -1762,8 +1778,20 @@ ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
     const userMsg=`[강의 원문]\n${ctx}\n\n`
       +((isShort||deepen)&&last?`[직전 질문]\n${last.q}\n\n[직전 답변 요약]\n${String(last.a||'').slice(0,700)}\n\n`:'')
       +`[이번 질문]\n${q}`;
-    const a=await llm([{role:'system',content:sys},{role:'user',content:userMsg}],
-      {temp:.2,maxTokens:isChoice||deepen?1800:1200});
+    let a=null,lastErr=null;
+    for(let t=0;t<2;t++){                 // 인터넷이 잠깐 끊긴 정도면 스스로 한 번 더 시도
+      try{
+        a=await llm([{role:'system',content:sys},{role:'user',content:userMsg}],
+          {temp:.2,maxTokens:isChoice||deepen?1800:1200});
+        break;
+      }catch(err){
+        lastErr=err;
+        if(!isNetErr(err))break;
+        box.querySelector('.a').innerHTML='<span class="thinking">연결이 불안정해 다시 시도하는 중…</span>';
+        await new Promise(r=>setTimeout(r,1200));
+      }
+    }
+    if(a===null)throw lastErr||new Error('알 수 없는 오류');
     box.querySelector('.a').innerHTML=citeHtml(a);
     session.qa=session.qa||[];session.qa.push({q,a,star:0});save(session);
     drawQA();
@@ -1771,8 +1799,70 @@ ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
     if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
     genFollowups().catch(()=>{});
   }catch(e){
-    box.querySelector('.a').innerHTML=`<span style="color:var(--red);font-weight:700;">답변 실패: ${esc(e.message)}</span>`;
+    box.dataset.q=q;if(baseIdx!=null)box.dataset.base=String(baseIdx);
+    box.querySelector('.a').innerHTML=
+      `<div style="color:var(--red);font-weight:800;">답변 실패: ${esc(e.message)}</div>`
+      +(isNetErr(e)?`<div style="font-size:12px;color:#999;font-weight:700;margin-top:6px;line-height:1.6;">인터넷 연결이 끊겼던 것 같습니다. 질문은 그대로 있으니 아래 버튼만 누르면 됩니다.</div>`:'')
+      +`<button class="starbtn retry" onclick="retryAsk(this)">🔄 다시 시도</button>`;
+    if(!($('qInput').value||'').trim())$('qInput').value=q;   // 엔터로도 다시 보낼 수 있게
   }finally{b.disabled=false;}
+}
+/* 인터넷이 끊겨서 실패한 것인지 판정 */
+function isNetErr(e){
+  const m=String((e&&e.message)||e||'');
+  return /failed to fetch|networkerror|network request|load failed|err_|연결|timeout|타임아웃/i.test(m);
+}
+/* 실패한 질문을 그대로 다시 보낸다 — 다시 입력할 필요 없음 */
+function retryAsk(btn){
+  const box=btn.closest('.qa');if(!box)return;
+  const q=box.dataset.q||'';if(!q)return;
+  const base=box.dataset.base!=null&&box.dataset.base!==''?+box.dataset.base:null;
+  if(($('qInput').value||'').trim()===q)$('qInput').value='';
+  box.remove();
+  ask(q,base);
+}
+
+/* ── 답변마다 붙는 "더 깊게" 줄 ──
+   누르면 그 답변을 기준으로 한 단계 더 파고든다. 앞의 네 개는 호출 없이 바로 쓰고,
+   마지막 버튼은 그 답변에 맞춘 질문을 새로 만들어 준다. */
+const DEEP_PRESET=[
+  ['더 자세히','방금 답변을 더 자세히, 생략된 배경과 세부까지 설명해줘'],
+  ['쉽게','방금 답변을 영어에 약한 사람도 알아듣게 쉬운 말로 다시 설명해줘'],
+  ['예시','방금 설명을 이해할 수 있는 구체적인 예시를 들어줘'],
+  ['왜?','방금 답변에서 그렇게 되는 이유를 한 단계 더 파고들어 설명해줘']
+];
+function deepRow(i){
+  return `<div class="deepwrap" id="deep-${i}">
+    <div class="deeps">
+      ${DEEP_PRESET.map(d=>`<button class="dchip" onclick="askDeeper(${i},'${esc(d[1])}')">${esc(d[0])}</button>`).join('')}
+      <button class="dchip gen" onclick="genDeepQs(${i},this)">✨ 이 답변에서 질문 뽑기</button>
+    </div>
+    <div class="deeps" id="deepq-${i}"></div>
+  </div>`;
+}
+function askDeeper(i,txt){
+  if(!session||!session.qa||!session.qa[i])return;
+  ask(txt,i);
+}
+async function genDeepQs(i,btn){
+  const x=session&&session.qa&&session.qa[i];if(!x)return;
+  if(needKey())return;
+  const box=$('deepq-'+i);if(!box)return;
+  btn.disabled=true;const old=btn.innerText;btn.innerText='만드는 중…';
+  try{
+    const sys=`학생이 방금 아래 질문을 하고 답을 들었다. **그 답변 내용을 한 단계 더 파고드는** 질문 4개를 만들어라.
+- 답변 안에서 더 궁금해질 만한 지점을 골라라. 주제를 옮기지 마라.
+- 짧게. 한국어 한 문장, 10~26자. (버튼에 들어간다)
+- 서로 겹치지 않게.
+JSON으로만: {"questions":[{"q":"..."}]}`;
+    const raw=await llm([{role:'system',content:sys},
+      {role:'user',content:`[질문]\n${x.q}\n\n[답변]\n${String(x.a||'').slice(0,1800)}`}],
+      {json:true,temp:.7,maxTokens:400});
+    const j=parseLoose(raw,'q')||JSON.parse(raw);
+    const list=dedupeQs(j.questions||j.items||[],askedQs(),4);
+    box.innerHTML=list.map(q=>`<button class="dchip alt" onclick="askDeeper(${i},'${esc(q)}')">${esc(q)}</button>`).join('');
+  }catch(e){box.innerHTML=`<span style="font-size:11.5px;color:#bbb;font-weight:700;">질문 생성 실패: ${esc(e.message)}</span>`;}
+  finally{btn.disabled=false;btn.innerText=old;}
 }
 /* ── 별표: 마음에 든 답변을 질문칸 위로 끌어올린다 ──
    원래 목록은 물어본 순서(1,2,3…)를 그대로 유지하고,
@@ -1808,6 +1898,7 @@ function drawQA(){
       <div class="a">${citeHtml(x.a)}
         <button class="starbtn${x.star?' on':''}" onclick="toggleStar(${i})">${x.star?'★ 별표됨':'☆ 별표'}</button>
         <span class="qno">#${i+1}</span>
+        ${deepRow(i)}
       </div></div>`).join('');
   drawSuggested();drawFollowups();
 }
