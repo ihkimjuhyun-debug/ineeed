@@ -7,7 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
 <script>window.onerror=function(m,s,l){console.error('ERR:',m,'L'+l);return true;};</script>
 <style>
-:root{--ink:#1C1C1E;--blue:#007AFF;--red:#FF3B30;--bg:#F2F2F7;--green:#34C759;--gold:#FFD60A;--purple:#5E5CE6;}
+:root{--ink:#1C1C1E;--blue:#007AFF;--red:#FF3B30;--bg:#F2F2F7;--green:#34C759;--gold:#FFD60A;--purple:#5E5CE6;--orange:#FF9F0A;}
 *{box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);margin:0;color:var(--ink);-webkit-text-size-adjust:100%;}
 .wrap{max-width:660px;margin:0 auto;min-height:100vh;padding-bottom:70px;}
@@ -27,6 +27,7 @@ textarea.inp{height:auto;min-height:190px;padding:13px;line-height:1.65;font-wei
 .btn-blue{background:var(--blue);color:#fff;}.btn-red{background:var(--red);color:#fff;}
 .btn-gold{background:var(--gold);color:#7A5500;}.btn-green{background:var(--green);color:#fff;}
 .btn-pur{background:var(--purple);color:#fff;}
+.btn-orange{background:var(--orange);color:#fff;}
 .btn-out{background:#fff;border:2px solid var(--blue);color:var(--blue);}
 .btn-gray{background:#E5E5EA;color:var(--ink);}
 .btn-sm{height:42px;font-size:13.5px;border-radius:12px;margin-bottom:0;}
@@ -52,6 +53,8 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .dot-on{background:var(--red);box-shadow:0 0 8px var(--red);animation:bl 1s infinite;}
 .dot-off{background:#ccc;}.dot-ps{background:var(--gold);}
 @keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+.btn-green.glow{animation:sumGlow 1.4s ease-in-out 5;}
+@keyframes sumGlow{0%,100%{box-shadow:0 0 0 0 rgba(52,199,89,.6);transform:scale(1);}50%{box-shadow:0 0 16px 6px rgba(52,199,89,.45);transform:scale(1.015);}}
 .timer{font-size:36px;font-weight:900;text-align:center;letter-spacing:1px;}
 .meta{text-align:center;font-size:11.5px;color:#aaa;font-weight:700;margin-top:3px;}
 .pad{background:#fff;border-radius:16px;padding:4px 18px;border:1px solid #EAEAEA;min-height:130px;max-height:44vh;overflow-y:auto;}
@@ -379,8 +382,19 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 
     <button id="startBtn" class="btn btn-blue" onclick="start()">🎙 녹음 시작</button>
     <div class="row" id="live" style="display:none;">
-      <button id="pauseBtn" class="btn btn-gold" onclick="togglePause()">⏸ 일시정지</button>
+      <button id="pauseBtn" class="btn btn-orange" onclick="togglePause()">⏸ 일시정지</button>
       <button class="btn btn-red" onclick="stop()">■ 종료</button>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="lbl">🌐 번역 언어</div>
+      <select id="trLangSel" class="sel" onchange="setTrLang(this.value)">
+        <option value="ko">한국어</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+        <option value="es">Español</option>
+      </select>
+      <div class="tip">각 문단 아래 ⟲ 버튼을 누르면 이 언어로 번역해서 보여줍니다.</div>
     </div>
 
     <input type="file" id="audioFile" accept="audio/*" style="display:none;" onchange="uploadAudioFile(this)">
@@ -525,17 +539,6 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 <!-- 단어 게임 -->
 <div class="gov" id="gameOv"><div id="gameBody"></div></div>
 
-<!-- 실시간 번역 토글 -->
-<div class="fabtip" id="fabTip"></div>
-<button class="fab" id="koFab" title="실시간 번역" onclick="toggleKo()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="23 4 23 10 17 10"></polyline>
-    <polyline points="1 20 1 14 7 14"></polyline>
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-  </svg>
-  <span class="bdg2" id="koLangBdg" onclick="event.stopPropagation();cycleTrLang()" title="눌러서 번역 언어 바꾸기">한</span>
-</button>
-
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
    오디오 파이프라인 요점
@@ -563,6 +566,7 @@ let ac=null,micStream=null,dispStream=null,gainNode=null,limiter=null,analyser=n
 let capRate=48000,pcmParts=[],pcmLen=0,frames=[],nfWin=[],frAcc=0,frN=0,frTarget=1200,overlapTail=null;
 let raf=null,peakHold=0,agTimer=null,cutTimer=null,agGain=1,holdUntil=0;
 let session=null,state='idle',seq=0,pending=0,silent=0,chunkStart=0;
+let sumGlowPending=false;              // 녹음 직후 '요약 만들기' 버튼을 한 번 반짝여서 눈에 띄게 함
 let elapsed=0,tick=null,lastTick=0,wakeLock=null,testing=false,finalizing=false;
 let noSleepVideo=null,noSleepTimer=null;
 /* Wake Lock API가 없거나 실패하는 브라우저를 위한 대체 화면-꺼짐 방지 (NoSleep.js와 같은 방식):
@@ -602,8 +606,12 @@ const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
              (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IS_MOBILE=IS_IOS||/Android/i.test(navigator.userAgent);
 let lastPcmAt=0,stalled=false;          // 화면이 꺼져 녹음이 멈추는 것을 감지
-let liveKo=false,koQueue=[],koBusy=0;   // 실시간 번역
-const TR_LANGS={ko:{name:'한국어',badge:'한'},es:{name:'스페인어',badge:'ES'},ja:{name:'일본어',badge:'JP'},zh:{name:'중국어',badge:'中'}};
+const TR_LANGS={
+  ko:{name:'한국어',label:'한국어'},
+  ja:{name:'일본어',label:'日本語'},
+  zh:{name:'중국어',label:'中文'},
+  es:{name:'스페인어',label:'Español'}
+};
 let trLang='ko';                        // 번역 대상 언어
 const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
 
@@ -652,7 +660,7 @@ window.addEventListener('load',async()=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
   });
-  $('koFab').classList.add('show');paintKoFab();paintKoLangBadge();
+  paintTrLangSel();
   $('appPass').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();savePass();}});
   detectServer();
   await recovery();renderArc();
@@ -765,7 +773,6 @@ function goTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.sec').forEach(x=>x.classList.remove('on'));
   $('tab-'+t).classList.add('on');$('sec-'+t).classList.add('on');
-  $('koFab').classList.toggle('show',t==='rec');
   if(t==='arc')renderArc(); if(t==='std')renderStudy();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1033,7 +1040,7 @@ async function start(){
     date:now.toLocaleString('ko-KR'),chunks:[],transcript:'',duration:0,complete:false,
     summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
   session.chunkSec=chunkSec;
-  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;koQueue=[];
+  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
@@ -1067,6 +1074,7 @@ function finish(){
   $('statusTxt').innerText='완료';
   $('startBtn').style.display='block';$('startBtn').innerText='🎙 새 녹음 시작';$('startBtn').onclick=()=>location.reload();
   $('toStudy').style.display='flex';renderArc();
+  sumGlowPending=true;                 // 학습 화면에 들어가면 '요약 만들기' 버튼을 부드럽게 점등
 }
 function startTimer(){lastTick=Date.now();tick=setInterval(()=>{const n=Date.now();elapsed+=n-lastTick;lastTick=n;$('timer').innerText=fmt(elapsed);},500);}
 function stopTimer(){clearInterval(tick);}
@@ -1134,7 +1142,7 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
     sess.chunks.sort((a,b)=>a.seq-b.seq);
     rebuild(sess);save(sess);del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
-    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);if(liveKo&&text&&!filt)enqueueKo(rec);}
+    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);}
   }catch(e){
     console.warn('구간 실패',n,e.message);
     if(retry<5){await new Promise(r=>setTimeout(r,Math.min(30000,1500*Math.pow(2,retry))));
@@ -1378,71 +1386,20 @@ function needKey(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   실시간 한국어 번역 (우측 하단 ↻ 버튼)
-   전사가 끝난 구간이 생길 때마다 곧바로 한국어로 옮겨 영어 아래에 붙인다.
-   전사와 별개의 요청이라 받아쓰기 속도를 늦추지 않는다(최대 2개 동시).
+   번역 (각 문단 아래 ⟲ 버튼으로 그때그때 번역)
+   드롭다운에서 고른 언어로 번역한다. 전사와 별개의 요청이라 받아쓰기 속도에
+   영향을 주지 않는다.
    ═══════════════════════════════════════════════════════════════════════ */
-function toggleKo(){
-  if(!liveKo&&!hasAuth()){if(needKey())return;}
-  liveKo=!liveKo;
-  paintKoFab();
-  const langName=TR_LANGS[trLang].name;
-  if(liveKo&&session){
-    bodyChunks(session).forEach(c=>{if(!c.ko||c.koLang!==trLang)enqueueKo(c);});
-    fabToast('실시간 '+langName+' 번역 켜짐');
-  }else{
-    koQueue=[];fabToast('실시간 번역 꺼짐');
-  }
+function paintTrLangSel(){
+  const sel=$('trLangSel');if(sel&&sel.value!==trLang)sel.value=trLang;
 }
-function paintKoFab(){
-  const f=$('koFab');if(!f)return;
-  f.classList.toggle('on',liveKo);
-  const langName=TR_LANGS[trLang].name;
-  f.title=liveKo?('실시간 '+langName+' 번역 켜짐 — 누르면 끔'):('실시간 '+langName+' 번역 켜기');
-}
-function paintKoLangBadge(){
-  const b=$('koLangBdg');if(b)b.innerText=TR_LANGS[trLang].badge;
-}
-function cycleTrLang(){
-  const order=['ko','es','ja','zh'];
-  const i=order.indexOf(trLang);
-  trLang=order[(i+1)%order.length];
-  saveCfg();paintKoLangBadge();paintKoFab();
-  fabToast(TR_LANGS[trLang].name+'로 번역하도록 바뀌었습니다');
-  // 언어를 바꾸면 기존 캐시된 번역은 이전 언어라서 다시 번역해야 함(화면에 이미 떠 있는 것은 유지, 켜져 있으면 새로 요청)
-  if(liveKo&&session)bodyChunks(session).forEach(c=>{if(c.koLang&&c.koLang!==trLang)enqueueKo(c);});
-}
-let fabT=null;
-function fabToast(msg){
-  const t=$('fabTip');if(!t)return;
-  t.innerText=msg;t.classList.add('show');
-  clearTimeout(fabT);fabT=setTimeout(()=>t.classList.remove('show'),2200);
+function setTrLang(v){
+  if(!TR_LANGS[v]||v===trLang)return;
+  trLang=v;
+  saveCfg();paintTrLangSel();
 }
 function trPrompt(langName){
   return `강의 녹취의 한 조각이다. 자연스러운 ${langName}로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 ${langName}면 그대로 출력한다. 전문용어는 ${langName} 뒤 괄호에 원어(영어)를 남긴다.`;
-}
-function enqueueKo(c){
-  if(!liveKo||!c||!c.text||!c.text.trim())return;
-  if(c.ko&&c.koLang===trLang)return;           // 같은 언어로 이미 번역돼 있으면 재요청 안 함
-  if(koQueue.indexOf(c)!==-1)return;
-  koQueue.push(c);paintKoFor(c,true);pumpKo();
-}
-function pumpKo(){
-  while(liveKo&&koBusy<2&&koQueue.length){
-    const c=koQueue.shift();
-    if(!c||(c.ko&&c.koLang===trLang))continue;
-    koBusy++;
-    const lang=trLang,langName=TR_LANGS[lang].name;
-    (async()=>{
-      try{
-        const t=await llm([{role:'system',content:trPrompt(langName)},
-          {role:'user',content:c.text}],{temp:.2,maxTokens:800});
-        c.ko=(t||'').trim();c.koLang=lang;
-        if(session)save(session);
-      }catch(e){console.warn('번역 실패',e.message);c.ko='';c.koLang=lang;}
-      finally{koBusy--;paintKoFor(c,false);pumpKo();}
-    })();
-  }
 }
 /* .ko 줄은 번역 버튼 줄(.trrow) 위에 들어가야 한다 */
 function putKo(host,txt,waiting){
@@ -1456,20 +1413,6 @@ function putKo(host,txt,waiting){
   el.className='ko'+(waiting?' wait':'');
   el.innerText=waiting?(TR_LANGS[trLang].name+'로 옮기는 중…'):txt;
   return el;
-}
-function paintKoFor(c,waiting){
-  if(!c)return;
-  const host=$('ck-'+c.seq);
-  if(host){
-    if(!c.ko&&!waiting){const el=host.querySelector('.ko');if(el)el.remove();}
-    else{putKo(host,c.ko,waiting);
-      const b=host.querySelector('.trbtn');if(b&&c.ko)b.classList.add('on');}
-  }
-  const tl=document.getElementById('tl-'+label(c));
-  if(tl&&c.ko&&!tl.querySelector('.ko')){
-    putKo(tl,c.ko,false);
-    const b=tl.querySelector('.trbtn');if(b)b.classList.add('on');
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1522,7 +1465,7 @@ const POS_RULE=s=>s.kind==='text'&&bodyChunks(s).every(c=>c.tSec==null)
 async function makeSummary(){
   if(!session||!session.transcript)return alert('내용이 없습니다.');
   if(needKey())return;
-  const b=$('sumBtn');b.disabled=true;b.innerText='요약 만드는 중...';
+  const b=$('sumBtn');b.disabled=true;b.innerText='요약 만드는 중...';b.classList.remove('glow');
   try{
     const lines=fullLines(session);const joined=lines.join('\n');
     let base=joined,partial='';
@@ -1576,7 +1519,11 @@ function citeHtml(md){
     (m,k)=>`<button class="cite" data-k="${esc(k.replace(/단락\s*/,'단락 '))}">${esc(k)}</button>`);
 }
 function drawSummary(){
-  if(!session||!session.summary){$('sumArea').innerHTML='';$('sumBtn').innerText='🤖 요약 만들기';return;}
+  if(!session||!session.summary){
+    $('sumArea').innerHTML='';$('sumBtn').innerText='🤖 요약 만들기';
+    if(sumGlowPending){sumGlowPending=false;$('sumBtn').classList.add('glow');}
+    return;
+  }
   $('sumArea').innerHTML=`<div class="sum">${citeHtml(session.summary)}</div>
     <div class="row" style="margin:12px 0;">
       <button class="btn btn-out btn-sm" onclick="dlSum()">📄 요약 저장</button>
