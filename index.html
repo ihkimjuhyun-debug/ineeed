@@ -359,7 +359,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
         <button data-v="20" class="on">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
         <button data-v="30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
       </div>
-      <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 API 호출이 늘고, 앞뒤 문맥이 짧아져 정확도가 조금 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
+      <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 비용이 조금 늘고, 앞뒤 문맥이 짧아져 정확도가 살짝 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
     </div>
 
     <div class="card">
@@ -421,10 +421,11 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
     <div id="stdBody" style="display:none;">
       <div class="card" style="padding:15px 17px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-          <div style="min-width:0;">
+          <div style="min-width:0;flex:1;">
             <div id="stdTitle" style="font-size:16.5px;font-weight:900;line-height:1.4;"></div>
             <div id="stdMeta" style="font-size:11.5px;color:#aaa;font-weight:700;margin-top:4px;"></div>
           </div>
+          <button class="mini" style="flex-shrink:0;" onclick="renameSession(session.id)" title="제목 수정">✏️ 제목</button>
         </div>
         <div class="row" style="margin-top:12px;">
           <button class="btn btn-out btn-sm" onclick="dlText()">📄 전문</button>
@@ -510,21 +511,29 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
   </div>
 
   <!-- ═══════════ 보관함 ═══════════ -->
-  <div id="sec-arc" class="sec"><div id="arcList"></div></div>
+  <div id="sec-arc" class="sec">
+    <input type="text" id="arcSearch" class="inp" placeholder="🔍 제목으로 찾기" style="margin-bottom:10px;" oninput="renderArc()">
+    <div class="seg2" id="segArcSort" style="font-size:12px;">
+      <button data-v="date" class="on" onclick="setArcSort('date')">🕒 날짜순</button>
+      <button data-v="name" onclick="setArcSort('name')">🔤 이름순</button>
+      <button data-v="size" onclick="setArcSort('size')">📦 용량순</button>
+    </div>
+    <div id="arcList"></div>
+  </div>
 </div>
 
 <!-- 단어 게임 -->
 <div class="gov" id="gameOv"><div id="gameBody"></div></div>
 
-<!-- 실시간 한국어 번역 토글 -->
+<!-- 실시간 번역 토글 -->
 <div class="fabtip" id="fabTip"></div>
-<button class="fab" id="koFab" title="실시간 한국어 번역" onclick="toggleKo()">
+<button class="fab" id="koFab" title="실시간 번역" onclick="toggleKo()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <polyline points="23 4 23 10 17 10"></polyline>
     <polyline points="1 20 1 14 7 14"></polyline>
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
   </svg>
-  <span class="bdg2">한</span>
+  <span class="bdg2" id="koLangBdg" onclick="event.stopPropagation();cycleTrLang()" title="눌러서 번역 언어 바꾸기">한</span>
 </button>
 
 <script>
@@ -593,7 +602,9 @@ const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
              (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IS_MOBILE=IS_IOS||/Android/i.test(navigator.userAgent);
 let lastPcmAt=0,stalled=false;          // 화면이 꺼져 녹음이 멈추는 것을 감지
-let liveKo=false,koQueue=[],koBusy=0;   // 실시간 한국어 번역
+let liveKo=false,koQueue=[],koBusy=0;   // 실시간 번역
+const TR_LANGS={ko:{name:'한국어',badge:'한'},es:{name:'스페인어',badge:'ES'},ja:{name:'일본어',badge:'JP'},zh:{name:'중국어',badge:'中'}};
+let trLang='ko';                        // 번역 대상 언어
 const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
 
 /* ═══════════ IndexedDB ═══════════ */
@@ -615,7 +626,7 @@ window.addEventListener('load',async()=>{
   const k=localStorage.getItem(LS_K);if(k){$('apiKey').value=k;showKeySaved();}
   $('apiKey').addEventListener('change',()=>{if(SRV.on)return;const v=$('apiKey').value.trim();if(v){try{localStorage.setItem(LS_K,v);}catch(e){}showKeySaved();}});
   try{const c=JSON.parse(localStorage.getItem(LS_C)||'{}');
-    if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;if(c.chunk)chunkSec=+c.chunk;}catch(e){}
+    if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;if(c.chunk)chunkSec=+c.chunk;if(c.trLang&&TR_LANGS[c.trLang])trLang=c.trLang;}catch(e){}
   $('amp').value=ampLv;paintSrc();paintAmp();paintChunk();
   $('segChunk').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
@@ -641,7 +652,7 @@ window.addEventListener('load',async()=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
   });
-  $('koFab').classList.add('show');paintKoFab();
+  $('koFab').classList.add('show');paintKoFab();paintKoLangBadge();
   $('appPass').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();savePass();}});
   detectServer();
   await recovery();renderArc();
@@ -653,7 +664,7 @@ window.addEventListener('load',async()=>{
       noSleepOn();
     }});
 });
-function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec}));}catch(e){}}
+function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec,trLang}));}catch(e){}}
 function paintChunk(){$('segChunk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===chunkSec));}
 function paintSrc(){
   if(!CAN_DISP&&srcMode!=='mic'){srcMode='mic';saveCfg();}
@@ -1375,9 +1386,10 @@ function toggleKo(){
   if(!liveKo&&!hasAuth()){if(needKey())return;}
   liveKo=!liveKo;
   paintKoFab();
+  const langName=TR_LANGS[trLang].name;
   if(liveKo&&session){
-    bodyChunks(session).forEach(c=>{if(!c.ko)enqueueKo(c);});
-    fabToast('실시간 한국어 번역 켜짐');
+    bodyChunks(session).forEach(c=>{if(!c.ko||c.koLang!==trLang)enqueueKo(c);});
+    fabToast('실시간 '+langName+' 번역 켜짐');
   }else{
     koQueue=[];fabToast('실시간 번역 꺼짐');
   }
@@ -1385,7 +1397,20 @@ function toggleKo(){
 function paintKoFab(){
   const f=$('koFab');if(!f)return;
   f.classList.toggle('on',liveKo);
-  f.title=liveKo?'실시간 한국어 번역 켜짐 — 누르면 끔':'실시간 한국어 번역 켜기';
+  const langName=TR_LANGS[trLang].name;
+  f.title=liveKo?('실시간 '+langName+' 번역 켜짐 — 누르면 끔'):('실시간 '+langName+' 번역 켜기');
+}
+function paintKoLangBadge(){
+  const b=$('koLangBdg');if(b)b.innerText=TR_LANGS[trLang].badge;
+}
+function cycleTrLang(){
+  const order=['ko','es','ja','zh'];
+  const i=order.indexOf(trLang);
+  trLang=order[(i+1)%order.length];
+  saveCfg();paintKoLangBadge();paintKoFab();
+  fabToast(TR_LANGS[trLang].name+'로 번역하도록 바뀌었습니다');
+  // 언어를 바꾸면 기존 캐시된 번역은 이전 언어라서 다시 번역해야 함(화면에 이미 떠 있는 것은 유지, 켜져 있으면 새로 요청)
+  if(liveKo&&session)bodyChunks(session).forEach(c=>{if(c.koLang&&c.koLang!==trLang)enqueueKo(c);});
 }
 let fabT=null;
 function fabToast(msg){
@@ -1393,24 +1418,28 @@ function fabToast(msg){
   t.innerText=msg;t.classList.add('show');
   clearTimeout(fabT);fabT=setTimeout(()=>t.classList.remove('show'),2200);
 }
+function trPrompt(langName){
+  return `강의 녹취의 한 조각이다. 자연스러운 ${langName}로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 ${langName}면 그대로 출력한다. 전문용어는 ${langName} 뒤 괄호에 원어(영어)를 남긴다.`;
+}
 function enqueueKo(c){
-  if(!liveKo||!c||!c.text||!c.text.trim()||c.ko)return;
+  if(!liveKo||!c||!c.text||!c.text.trim())return;
+  if(c.ko&&c.koLang===trLang)return;           // 같은 언어로 이미 번역돼 있으면 재요청 안 함
   if(koQueue.indexOf(c)!==-1)return;
   koQueue.push(c);paintKoFor(c,true);pumpKo();
 }
 function pumpKo(){
   while(liveKo&&koBusy<2&&koQueue.length){
     const c=koQueue.shift();
-    if(!c||c.ko)continue;
+    if(!c||(c.ko&&c.koLang===trLang))continue;
     koBusy++;
+    const lang=trLang,langName=TR_LANGS[lang].name;
     (async()=>{
       try{
-        const t=await llm([{role:'system',content:
-          '강의 녹취의 한 조각이다. 자연스러운 한국어로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 한국어면 그대로 출력한다. 전문용어는 한국어 뒤 괄호에 영어 원어를 남긴다.'},
+        const t=await llm([{role:'system',content:trPrompt(langName)},
           {role:'user',content:c.text}],{temp:.2,maxTokens:800});
-        c.ko=(t||'').trim();
+        c.ko=(t||'').trim();c.koLang=lang;
         if(session)save(session);
-      }catch(e){console.warn('번역 실패',e.message);c.ko='';}
+      }catch(e){console.warn('번역 실패',e.message);c.ko='';c.koLang=lang;}
       finally{koBusy--;paintKoFor(c,false);pumpKo();}
     })();
   }
@@ -1425,7 +1454,7 @@ function putKo(host,txt,waiting){
     if(row)host.insertBefore(el,row);else host.appendChild(el);
   }
   el.className='ko'+(waiting?' wait':'');
-  el.innerText=waiting?'한국어로 옮기는 중…':txt;
+  el.innerText=waiting?(TR_LANGS[trLang].name+'로 옮기는 중…'):txt;
   return el;
 }
 function paintKoFor(c,waiting){
@@ -1448,7 +1477,7 @@ function paintKoFor(c,waiting){
    안 읽히는 문단만 골라서 눌러 한국어로 바꿔 본다. 다시 누르면 접힌다.
    ═══════════════════════════════════════════════════════════════════════ */
 function trBtn(seq,has){
-  return `<div class="trrow"><button class="trbtn${has?' on':''}" title="한국어로 번역" onclick="translateChunk(${seq},this)">
+  return `<div class="trrow"><button class="trbtn${has?' on':''}" title="${TR_LANGS[trLang].name}로 번역" onclick="translateChunk(${seq},this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="17 1 21 5 17 9"></polyline>
       <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
@@ -1461,7 +1490,7 @@ async function translateChunk(seq,btn){
   const c=cs.find(x=>x.seq===seq);
   if(!c||!c.text)return;
   const host=btn.closest('.ck')||btn.closest('.tline');
-  if(c.ko){                                  // 이미 번역돼 있으면 보이기/숨기기만
+  if(c.ko&&c.koLang===trLang){               // 같은 언어로 이미 번역돼 있으면 보이기/숨기기만
     const el=host&&host.querySelector('.ko');
     if(el){el.remove();btn.classList.remove('on');}
     else{putKo(host,c.ko,false);btn.classList.add('on');}
@@ -1470,11 +1499,11 @@ async function translateChunk(seq,btn){
   if(needKey())return;
   btn.classList.add('busy');
   putKo(host,'',true);
+  const lang=trLang,langName=TR_LANGS[lang].name;
   try{
-    const t=await llm([{role:'system',content:
-      '강의 녹취의 한 조각이다. 자연스러운 한국어로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 한국어면 그대로 출력한다. 전문용어는 한국어 뒤 괄호에 영어 원어를 남긴다.'},
+    const t=await llm([{role:'system',content:trPrompt(langName)},
       {role:'user',content:c.text}],{temp:.2,maxTokens:900});
-    c.ko=(t||'').trim();
+    c.ko=(t||'').trim();c.koLang=lang;
     if(session)save(session);
     putKo(host,c.ko,false);btn.classList.add('on');
   }catch(e){
@@ -2099,11 +2128,12 @@ function drawQuiz(){
     const r=res[i],cls=g?(r&&r.ok?' ok':' no'):'';
     let body='';
     if(it.type==='mc'){
+      const picked=qz.answers[i];                // null이면 아직 아무것도 안 고른 것 — 0으로 착각하면 안 됨
       body=(it.choices||[]).map((c,j)=>{
         let k='opt';
-        if(g){ if(+it.answer===j)k+=' ans'; else if(+qz.answers[i]===j)k+=' wrong'; }
-        else if(+qz.answers[i]===j)k+=' pick';
-        return `<label class="${k}"><input type="radio" name="qz${i}" ${+qz.answers[i]===j?'checked':''} ${g?'disabled':''}
+        if(g){ if(+it.answer===j)k+=' ans'; else if(picked!=null&&+picked===j)k+=' wrong'; }
+        else if(picked!=null&&+picked===j)k+=' pick';
+        return `<label class="${k}"><input type="radio" name="qz${i}" ${picked!=null&&+picked===j?'checked':''} ${g?'disabled':''}
           onchange="setAns(${i},${j})"><span>${esc(c)}</span></label>`;}).join('');
     }else{
       body=`<input type="text" class="inp" ${g?'disabled':''} value="${esc(String(qz.answers[i]||''))}"
@@ -2711,23 +2741,50 @@ function copyText(){if(session)navigator.clipboard.writeText(fullText(session)).
 function dlSum(){if(session&&session.summary)download(session.summary,(session.title||'lecture')+'_요약.md');}
 function copySum(){if(session&&session.summary)navigator.clipboard.writeText(session.summary).then(()=>alert('복사되었습니다.')).catch(()=>alert('복사 실패'));}
 const esc=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let arcSort='date';
+function setArcSort(v){
+  arcSort=v;
+  const seg=$('segArcSort');if(seg)seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  renderArc();
+}
+function sizeOf(s){try{return JSON.stringify(s).length;}catch(e){return 0;}}
+function tsOf(s){return +((s.id||'').split('_')[1])||0;}
 function renderArc(){
-  const a=sessions(),box=$('arcList');
-  if(!a.length){box.innerHTML='<div class="empty">저장된 강의가 없습니다.</div>';return;}
+  const qEl=$('arcSearch'),q=(qEl&&qEl.value||'').trim().toLowerCase();
+  let a=sessions();
+  if(q)a=a.filter(s=>(s.title||'').toLowerCase().includes(q));
+  const box=$('arcList');
+  if(!a.length){box.innerHTML=`<div class="empty">${q?'검색 결과가 없습니다.':'저장된 강의가 없습니다.'}</div>`;return;}
+  a=a.slice().sort((x,y)=>{
+    if(arcSort==='name')return (x.title||'').localeCompare(y.title||'','ko');
+    if(arcSort==='size')return sizeOf(y)-sizeOf(x);
+    return tsOf(y)-tsOf(x);                     // date (기본) — 최신순
+  });
   box.innerHTML=a.map(s=>{
     const tags=[];
     if(s.summary)tags.push('요약');
     if((s.qa||[]).length)tags.push('질문 '+s.qa.length);
     if(s.vocab)tags.push('단어 '+s.vocab.length);
+    const kb=(sizeOf(s)/1024).toFixed(1);
     return `<div class="arc" onclick="openArc('${s.id}')">
       <div class="arc-hd"><span>${esc(s.date||'')}</span>
         <span class="bdg ${s.kind==='text'?'bdg-t':(s.complete?'bdg-d':'bdg-p')}">${s.kind==='text'?'텍스트':(s.complete?'완료':'중단')}</span></div>
       <div class="arc-t">${esc(s.title||'제목 없음')}</div>
-      <div class="arc-m">${(s.transcript||'').length.toLocaleString()}자${tags.length?' · '+tags.join(' · '):''}</div>
+      <div class="arc-m">${(s.transcript||'').length.toLocaleString()}자 · ${kb}KB${tags.length?' · '+tags.join(' · '):''}</div>
       <div class="row" style="margin-top:9px;" onclick="event.stopPropagation()">
         <button class="mini" onclick="openArc('${s.id}')">📚 학습 열기</button>
+        <button class="mini" onclick="renameSession('${s.id}')">✏️ 제목</button>
         <button class="mini" onclick="delSession('${s.id}')">🗑️ 삭제</button>
       </div></div>`;}).join('');
+}
+function renameSession(id){
+  const s=sessions().find(x=>x.id===id);if(!s)return;
+  const t=prompt('새 제목을 입력하세요',s.title||'');
+  if(t===null)return;                           // 취소
+  const nt=t.trim();if(!nt)return;
+  s.title=nt;save(s);
+  if(session&&session.id===id){session.title=nt;if($('stdTitle'))$('stdTitle').innerText=nt;}
+  renderArc();
 }
 function openArc(id){
   const s=sessions().find(x=>x.id===id);if(!s)return;
