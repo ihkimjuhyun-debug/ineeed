@@ -305,14 +305,14 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 <body>
 <div class="wrap">
   <div class="hdr">
-    <div class="title">강의 노트</div>
-    <div class="sub">녹음 · 받아쓰기 · 요약 · 질문 · 단어장</div>
+    <div class="title" data-i18n="headerTitle">강의 노트</div>
+    <div class="sub" data-i18n="headerSub">녹음 · 받아쓰기 · 요약 · 질문 · 단어장</div>
   </div>
   <nav class="nav">
-    <button class="tab on" id="tab-rec" onclick="goTab('rec')">🎙 녹음</button>
-    <button class="tab" id="tab-txt" onclick="goTab('txt')">📝 텍스트</button>
-    <button class="tab" id="tab-std" onclick="goTab('std')">📚 학습</button>
-    <button class="tab" id="tab-arc" onclick="goTab('arc')">🗂 보관함</button>
+    <button class="tab on" id="tab-rec" data-i18n="tabRec" onclick="goTab('rec')">🎙 녹음</button>
+    <button class="tab" id="tab-txt" data-i18n="tabTxt" onclick="goTab('txt')">📝 텍스트</button>
+    <button class="tab" id="tab-std" data-i18n="tabStd" onclick="goTab('std')">📚 학습</button>
+    <button class="tab" id="tab-arc" data-i18n="tabArc" onclick="goTab('arc')">🗂 보관함</button>
   </nav>
 
   <!-- ═══════════ 녹음 ═══════════ -->
@@ -320,109 +320,110 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
     <div id="recovery"></div>
 
     <div class="card" id="keyCard">
-      <div class="lbl">OpenAI API 키 <span style="font-weight:600;color:#bbb;">— 이 브라우저에만 저장됩니다</span></div>
-      <input type="password" id="apiKey" class="inp" placeholder="sk-..." autocomplete="off">
-      <div class="tip c">키가 없으면 <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></div>
+      <div class="lbl" data-i18n-html="keyLabel">OpenAI API 키 <span style="font-weight:600;color:#bbb;">— 이 브라우저에만 저장됩니다</span></div>
+      <input type="password" id="apiKey" class="inp" data-i18n-ph="apiKeyPh" placeholder="sk-..." autocomplete="off">
+      <div class="tip c" data-i18n-html="keyTip">키가 없으면 <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></div>
     </div>
     <div class="card" id="keyDone" style="display:none;">
-      <div class="keyrow"><span>🔑 API 키 저장됨</span><span class="link" onclick="editKey()">변경</span></div>
+      <div class="keyrow"><span data-i18n="keyDone">🔑 API 키 저장됨</span><span class="link" data-i18n="keyChange" onclick="editKey()">변경</span></div>
     </div>
     <!-- 서버(Vercel)에 키가 있을 때 -->
     <div class="card" id="srvCard" style="display:none;">
-      <div class="keyrow"><span style="color:var(--green);">🔒 보안 모드 — 키는 서버에 있습니다</span>
-        <span style="font-weight:700;color:#ccc;font-size:11px;">입력 불필요</span></div>
+      <div class="keyrow"><span style="color:var(--green);" data-i18n="srvSecure">🔒 보안 모드 — 키는 서버에 있습니다</span>
+        <span style="font-weight:700;color:#ccc;font-size:11px;" data-i18n="srvNoInput">입력 불필요</span></div>
       <div id="passWrap" style="display:none;margin-top:12px;">
-        <div class="lbl">내 접속 코드</div>
-        <input type="password" id="appPass" class="inp" placeholder="발급받은 코드" autocomplete="off">
-        <button class="btn btn-blue btn-sm" style="margin-top:10px;" id="passBtn" onclick="savePass()">확인</button>
-        <div class="tip c">이 기기에만 저장됩니다. 한 번만 넣으면 됩니다.</div>
+        <div class="lbl" data-i18n="passLabel">내 접속 코드</div>
+        <input type="password" id="appPass" class="inp" data-i18n-ph="passPh" placeholder="발급받은 코드" autocomplete="off">
+        <button class="btn btn-blue btn-sm" style="margin-top:10px;" id="passBtn" data-i18n="passBtn" onclick="savePass()">확인</button>
+        <div class="tip c" data-i18n="passTip">이 기기에만 저장됩니다. 한 번만 넣으면 됩니다.</div>
       </div>
       <div id="whoBox" style="display:none;margin-top:10px;font-size:12.5px;font-weight:800;color:#888;">
-        <span id="whoTxt"></span> · <span class="link" onclick="forgetPass()">코드 변경</span>
+        <span id="whoTxt"></span> · <span class="link" data-i18n="forgetPass" onclick="forgetPass()">코드 변경</span>
       </div>
     </div>
 
     <div class="card">
-      <div class="lbl">소리를 어디서 가져올까요?</div>
+      <div class="lbl" data-i18n="srcLabel">소리를 어디서 가져올까요?</div>
       <div class="seg" id="segSrc">
-        <button data-v="mic" class="on">🎙<br>마이크<br><span style="font-weight:600;font-size:10.5px;">오프라인 강의</span></button>
-        <button data-v="disp">💻<br>컴퓨터 소리<br><span style="font-weight:600;font-size:10.5px;">온라인 강의</span></button>
-        <button data-v="both">🎙+💻<br>둘 다<br><span style="font-weight:600;font-size:10.5px;">질문까지</span></button>
+        <button data-v="mic" class="on" data-i18n-html="srcMic">🎙<br>마이크<br><span style="font-weight:600;font-size:10.5px;">오프라인 강의</span></button>
+        <button data-v="disp" data-i18n-html="srcDisp">💻<br>컴퓨터 소리<br><span style="font-weight:600;font-size:10.5px;">온라인 강의</span></button>
+        <button data-v="both" data-i18n-html="srcBoth">🎙+💻<br>둘 다<br><span style="font-weight:600;font-size:10.5px;">질문까지</span></button>
       </div>
       <div class="tip" id="srcTip"></div>
       <div class="lbl" style="margin-top:16px;display:flex;justify-content:space-between;">
-        <span>증폭 강도</span><span id="ampTxt" style="color:var(--blue);"></span>
+        <span data-i18n="ampLabel">증폭 강도</span><span id="ampTxt" style="color:var(--blue);"></span>
       </div>
       <input type="range" id="amp" min="1" max="4" step="1" value="2">
-      <div class="tip">멀리 있는 교수님 목소리가 자꾸 끊기면 오른쪽으로. 큰 소리가 나도 증폭이 잠깐 줄었다 <b>곧바로 다시 올라옵니다</b>.</div>
+      <div class="tip" data-i18n-html="ampTip">멀리 있는 교수님 목소리가 자꾸 끊기면 오른쪽으로. 큰 소리가 나도 증폭이 잠깐 줄었다 <b>곧바로 다시 올라옵니다</b>.</div>
 
-      <div class="lbl" style="margin-top:18px;">받아쓰기 간격</div>
+      <div class="lbl" style="margin-top:18px;" data-i18n="chunkLabel">받아쓰기 간격</div>
       <div class="seg" id="segChunk">
-        <button data-v="10">10초<br><span style="font-weight:600;font-size:10.5px;">가장 빠름</span></button>
-        <button data-v="20" class="on">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
-        <button data-v="30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
+        <button data-v="10" data-i18n-html="chunk10">10초<br><span style="font-weight:600;font-size:10.5px;">가장 빠름</span></button>
+        <button data-v="20" class="on" data-i18n-html="chunk20">20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span></button>
+        <button data-v="30" data-i18n-html="chunk30">30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span></button>
       </div>
-      <div class="tip">짧을수록 화면에 빨리 뜹니다. 대신 비용이 조금 늘고, 앞뒤 문맥이 짧아져 정확도가 살짝 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
+      <div class="tip" data-i18n-html="chunkTip">짧을수록 화면에 빨리 뜹니다. 대신 비용이 조금 늘고, 앞뒤 문맥이 짧아져 정확도가 살짝 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.</div>
     </div>
 
     <div class="card">
       <div class="lbl" style="display:flex;justify-content:space-between;">
-        <span>🎚 입력 레벨</span><span id="gainBadge" style="color:#bbb;">-</span>
+        <span data-i18n="inputLevelLabel">🎚 입력 레벨</span><span id="gainBadge" style="color:#bbb;">-</span>
       </div>
       <div class="meter"><div class="mfill" id="mFill"></div><div class="mpeak" id="mPeak"></div></div>
-      <div class="lv lv-no" id="lvTxt">테스트를 눌러 소리가 들어오는지 확인하세요</div>
-      <button class="btn btn-out btn-sm" style="margin-top:12px;" id="testBtn" onclick="toggleTest()">소리 테스트</button>
+      <div class="lv lv-no" id="lvTxt" data-i18n="lvTxt">테스트를 눌러 소리가 들어오는지 확인하세요</div>
+      <button class="btn btn-out btn-sm" style="margin-top:12px;" id="testBtn" data-i18n="testBtn" onclick="toggleTest()">소리 테스트</button>
     </div>
 
-    <div class="status"><span class="dot dot-off" id="dot"></span><span id="statusTxt">대기 중</span></div>
+    <div class="status"><span class="dot dot-off" id="dot"></span><span id="statusTxt" data-i18n="statusTxt">대기 중</span></div>
     <div class="card" style="text-align:center;">
       <div class="timer" id="timer">00:00:00</div>
-      <div class="meta" id="meta">아직 녹음하지 않았습니다</div>
+      <div class="meta" id="meta" data-i18n="metaIdle">아직 녹음하지 않았습니다</div>
     </div>
 
-    <button id="startBtn" class="btn btn-blue" onclick="start()">🎙 녹음 시작</button>
+    <button id="startBtn" class="btn btn-blue" data-i18n="startBtn" onclick="start()">🎙 녹음 시작</button>
     <div class="row" id="live" style="display:none;">
-      <button id="pauseBtn" class="btn btn-orange" onclick="togglePause()">⏸ 일시정지</button>
-      <button class="btn btn-red" onclick="stop()">■ 종료</button>
+      <button id="pauseBtn" class="btn btn-orange" data-i18n="pauseBtn" onclick="togglePause()">⏸ 일시정지</button>
+      <button class="btn btn-red" data-i18n="stopBtn" onclick="stop()">■ 종료</button>
     </div>
 
     <div class="card" style="margin-top:14px;">
-      <div class="lbl">🌐 실시간 번역 언어</div>
+      <div class="lbl" data-i18n="trLabel">🌐 번역 언어</div>
       <select id="trLangSel" class="sel" onchange="setTrLang(this.value)">
-        <option value="ko">English → 한국어</option>
-        <option value="ja">English → 일본어</option>
-        <option value="zh">English → 중국어</option>
-        <option value="es">English → 스페인어</option>
+        <option value="ko">한국어</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+        <option value="es">Español</option>
       </select>
+      <div class="tip" data-i18n="trTip">각 문단 아래 ⟲ 버튼을 누르면 이 언어로 번역해서 보여줍니다.</div>
     </div>
 
     <input type="file" id="audioFile" accept="audio/*" style="display:none;" onchange="uploadAudioFile(this)">
-    <button class="btn btn-out" style="margin-top:12px;" onclick="document.getElementById('audioFile').click()">📁 음성 파일 업로드 (+)</button>
-    <div class="tip">이미 녹음해 둔 파일(mp3, m4a, wav 등)을 통째로 올리면 자동으로 구간을 나눠 한꺼번에 전사합니다. 2시간짜리도 몇 분이면 끝나요. 파일이 아주 길면(2시간 이상) 휴대폰보다 PC에서 여는 걸 추천해요.</div>
+    <button class="btn btn-out" style="margin-top:12px;" data-i18n="uploadBtn" onclick="document.getElementById('audioFile').click()">📁 음성 파일 업로드 (+)</button>
+    <div class="tip" data-i18n="uploadTip">이미 녹음해 둔 파일(mp3, m4a, wav 등)을 통째로 올리면 자동으로 구간을 나눠 한꺼번에 전사합니다. 2시간짜리도 몇 분이면 끝나요. 파일이 아주 길면(2시간 이상) 휴대폰보다 PC에서 여는 걸 추천해요.</div>
     <div class="card" id="uploadBox" style="display:none;margin-top:10px;"></div>
 
     <div class="card" style="margin-top:16px;">
       <div class="lbl" style="display:flex;justify-content:space-between;">
-        <span>받아쓰기</span><span id="saved" style="color:#c8c8c8;font-weight:700;">-</span>
+        <span data-i18n="transcriptLabel">받아쓰기</span><span id="saved" style="color:#c8c8c8;font-weight:700;">-</span>
       </div>
-      <div class="pad" id="pad"><div class="hint">녹음을 시작하면<br>여기에 텍스트가 쌓입니다</div></div>
+      <div class="pad" id="pad"><div class="hint" data-i18n-html="padHint">녹음을 시작하면<br>여기에 텍스트가 쌓입니다</div></div>
     </div>
-    <button id="toStudy" class="btn btn-pur" style="display:none;margin-top:14px;" onclick="goTab('std')">📚 학습 화면으로 (요약 · 질문 · 단어장)</button>
+    <button id="toStudy" class="btn btn-pur" style="display:none;margin-top:14px;" data-i18n="toStudyBtn" onclick="goTab('std')">📚 학습 화면으로 (요약 · 질문 · 단어장)</button>
   </div>
 
   <!-- ═══════════ 텍스트 붙여넣기 ═══════════ -->
   <div id="sec-txt" class="sec">
     <div class="card">
-      <div class="lbl">제목 (선택)</div>
-      <input type="text" id="txtTitle" class="inp" placeholder="예: 9/3 지구과학 1강">
-      <div class="lbl" style="margin-top:14px;">강의 텍스트 붙여넣기</div>
-      <textarea id="txtInput" class="inp" placeholder="예전에 다운받아 둔 받아쓰기 텍스트, 자막 파일 내용, 강의 스크립트 등을 그대로 붙여넣으세요.&#10;&#10;시간 표시([12:34])가 들어 있으면 그대로 인식해서 답변에 위치를 표시해 줍니다."></textarea>
-      <div class="tip">파일에서 불러올 수도 있습니다 (.txt / .md / .srt / .vtt)</div>
+      <div class="lbl" data-i18n="txtTitleLabel">제목 (선택)</div>
+      <input type="text" id="txtTitle" class="inp" data-i18n-ph="txtTitlePh" placeholder="예: 9/3 지구과학 1강">
+      <div class="lbl" style="margin-top:14px;" data-i18n="txtInputLabel">강의 텍스트 붙여넣기</div>
+      <textarea id="txtInput" class="inp" data-i18n-ph="txtInputPh" placeholder="예전에 다운받아 둔 받아쓰기 텍스트, 자막 파일 내용, 강의 스크립트 등을 그대로 붙여넣으세요.&#10;&#10;시간 표시([12:34])가 들어 있으면 그대로 인식해서 답변에 위치를 표시해 줍니다."></textarea>
+      <div class="tip" data-i18n="txtFileTip">파일에서 불러올 수도 있습니다 (.txt / .md / .srt / .vtt)</div>
       <input type="file" id="txtFile" accept=".txt,.md,.srt,.vtt,text/plain" style="display:none;" onchange="loadTxtFile(this)">
-      <button class="btn btn-out btn-sm" style="margin-top:10px;" onclick="document.getElementById('txtFile').click()">📂 파일에서 불러오기</button>
+      <button class="btn btn-out btn-sm" style="margin-top:10px;" data-i18n="txtFileBtn" onclick="document.getElementById('txtFile').click()">📂 파일에서 불러오기</button>
       <div class="row" style="margin-top:12px;">
-        <button class="btn btn-gray btn-sm" onclick="document.getElementById('txtInput').value='';updateTxtCount();">지우기</button>
-        <button class="btn btn-blue btn-sm" onclick="makeTextSession()">📚 학습 시작</button>
+        <button class="btn btn-gray btn-sm" data-i18n="txtClearBtn" onclick="document.getElementById('txtInput').value='';updateTxtCount();">지우기</button>
+        <button class="btn btn-blue btn-sm" data-i18n="txtStartBtn" onclick="makeTextSession()">📚 학습 시작</button>
       </div>
       <div class="tip c" id="txtCount">0자</div>
     </div>
@@ -430,7 +431,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 
   <!-- ═══════════ 학습 ═══════════ -->
   <div id="sec-std" class="sec">
-    <div id="stdEmpty" class="empty">아직 열린 강의가 없습니다.<br>녹음을 마치거나, 텍스트를 붙여넣거나,<br>보관함에서 하나를 열어보세요.</div>
+    <div id="stdEmpty" class="empty" data-i18n-html="stdEmpty">아직 열린 강의가 없습니다.<br>녹음을 마치거나, 텍스트를 붙여넣거나,<br>보관함에서 하나를 열어보세요.</div>
     <div id="stdBody" style="display:none;">
       <div class="card" style="padding:15px 17px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
@@ -438,59 +439,59 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
             <div id="stdTitle" style="font-size:16.5px;font-weight:900;line-height:1.4;"></div>
             <div id="stdMeta" style="font-size:11.5px;color:#aaa;font-weight:700;margin-top:4px;"></div>
           </div>
-          <button class="mini" style="flex-shrink:0;" onclick="renameSession(session.id)" title="제목 수정">✏️ 제목</button>
+          <button class="mini" style="flex-shrink:0;" onclick="renameSession(session.id)" data-i18n-title="renameTitle" data-i18n="renameBtn" title="제목 수정">✏️ 제목</button>
         </div>
         <div class="row" style="margin-top:12px;">
-          <button class="btn btn-out btn-sm" onclick="dlText()">📄 전문</button>
-          <button class="btn btn-out btn-sm" onclick="copyText()">📋 복사</button>
+          <button class="btn btn-out btn-sm" data-i18n="dlTextBtn" onclick="dlText()">📄 전문</button>
+          <button class="btn btn-out btn-sm" data-i18n="copyTextBtn" onclick="copyText()">📋 복사</button>
         </div>
       </div>
 
       <div class="seg2" id="segStd" style="font-size:12px;">
-        <button data-v="sum" class="on">📋 요약</button>
-        <button data-v="qa">💬 질문</button>
-        <button data-v="quiz">📝 문제</button>
-        <button data-v="voc">📚 단어장</button>
-        <button data-v="full">📜 전문</button>
+        <button data-v="sum" class="on" data-i18n="segSum">📋 요약</button>
+        <button data-v="qa" data-i18n="segQa">💬 질문</button>
+        <button data-v="quiz" data-i18n="segQuiz">📝 문제</button>
+        <button data-v="voc" data-i18n="segVoc">📚 단어장</button>
+        <button data-v="full" data-i18n="segFull">📜 전문</button>
       </div>
 
       <!-- 요약 -->
       <div id="pane-sum" class="pane">
         <div id="sumArea"></div>
-        <button class="btn btn-green" id="sumBtn" onclick="makeSummary()">🤖 요약 만들기</button>
-        <div class="tip c">1시간 강의도 통째로 읽고 시간대별로 정리합니다.</div>
+        <button class="btn btn-green" id="sumBtn" data-i18n="sumBtn" onclick="makeSummary()">🤖 요약 만들기</button>
+        <div class="tip c" data-i18n="sumTip">1시간 강의도 통째로 읽고 시간대별로 정리합니다.</div>
       </div>
 
       <!-- 질문 -->
       <div id="pane-qa" class="pane" style="display:none;">
         <div class="qbox">
           <div class="lbl" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>💡 이런 게 궁금하지 않으세요?</span>
-            <span class="link" onclick="genQuestions(true)">새로 뽑기</span>
+            <span data-i18n="qaSuggestLabel">💡 이런 게 궁금하지 않으세요?</span>
+            <span class="link" data-i18n="qaRegenLink" onclick="genQuestions(true)">새로 뽑기</span>
           </div>
-          <div id="sugBox"><div class="tip">아래 버튼을 누르면 강의 내용에서 질문을 만들어 드립니다.</div></div>
-          <button class="btn btn-out btn-sm" style="margin-top:8px;" id="sugBtn" onclick="genQuestions(false)">✨ AI 질문 생성</button>
+          <div id="sugBox"><div class="tip" data-i18n="qaSugBoxTip">아래 버튼을 누르면 강의 내용에서 질문을 만들어 드립니다.</div></div>
+          <button class="btn btn-out btn-sm" style="margin-top:8px;" id="sugBtn" data-i18n="sugBtn" onclick="genQuestions(false)">✨ AI 질문 생성</button>
         </div>
         <div id="pinBox"></div>
         <div id="qaList"></div>
         <div class="card" style="position:sticky;bottom:12px;padding:12px;">
           <div id="fupBox" style="display:none;"></div>
-          <textarea id="qInput" class="inp" style="min-height:60px;" placeholder="강의 내용에 대해 무엇이든 물어보세요 (Enter로 전송, Shift+Enter 줄바꿈)&#10;예) 왜 최신판 교재를 써야 한다고 했나요?"></textarea>
-          <button class="btn btn-blue btn-sm" style="margin-top:8px;" id="askBtn" onclick="ask()">질문하기</button>
+          <textarea id="qInput" class="inp" style="min-height:60px;" data-i18n-ph="qInputPh" placeholder="강의 내용에 대해 무엇이든 물어보세요 (Enter로 전송, Shift+Enter 줄바꿈)&#10;예) 왜 최신판 교재를 써야 한다고 했나요?"></textarea>
+          <button class="btn btn-blue btn-sm" style="margin-top:8px;" id="askBtn" data-i18n="askBtn" onclick="ask()">질문하기</button>
         </div>
       </div>
 
       <!-- 문제 -->
       <div id="pane-quiz" class="pane" style="display:none;">
         <div class="card">
-          <div class="lbl">강의 전체에서 문제를 뽑습니다</div>
+          <div class="lbl" data-i18n="quizSrcLabel">강의 전체에서 문제를 뽑습니다</div>
           <select id="quizCount" class="sel">
-            <option value="10">10문제</option>
-            <option value="15" selected>15문제</option>
-            <option value="20">20문제</option>
+            <option value="10" data-i18n="quizCnt10">10문제</option>
+            <option value="15" selected data-i18n="quizCnt15">15문제</option>
+            <option value="20" data-i18n="quizCnt20">20문제</option>
           </select>
-          <button class="btn btn-gold btn-sm" style="margin-top:14px;" id="quizBtn" onclick="makeQuiz()">📝 문제 만들기</button>
-          <div class="tip">강의를 처음부터 끝까지 고르게 나눠서, 앞부분만 나오지 않게 문제를 만듭니다. 4지선다와 단답형이 섞여 나오고 채점 후 해설과 근거 위치를 보여줍니다.</div>
+          <button class="btn btn-gold btn-sm" style="margin-top:14px;" id="quizBtn" data-i18n="quizBtn" onclick="makeQuiz()">📝 문제 만들기</button>
+          <div class="tip" data-i18n="quizTip">강의를 처음부터 끝까지 고르게 나눠서, 앞부분만 나오지 않게 문제를 만듭니다. 4지선다와 단답형이 섞여 나오고 채점 후 해설과 근거 위치를 보여줍니다.</div>
         </div>
         <div id="quizArea"></div>
       </div>
@@ -498,20 +499,20 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
       <!-- 단어장 -->
       <div id="pane-voc" class="pane" style="display:none;">
         <div class="card">
-          <div class="lbl">내 영어 수준</div>
+          <div class="lbl" data-i18n="vocLevelLabel">내 영어 수준</div>
           <select id="vocLevel" class="sel">
-            <option value="low" selected>중학교 수준까지는 알아요 (그 이상만 뽑기)</option>
-            <option value="mid">고등학교 기초까지 알아요</option>
-            <option value="high">웬만한 건 알아요 (어려운 것만)</option>
+            <option value="low" selected data-i18n="vocLow">중학교 수준까지는 알아요 (그 이상만 뽑기)</option>
+            <option value="mid" data-i18n="vocMid">고등학교 기초까지 알아요</option>
+            <option value="high" data-i18n="vocHigh">웬만한 건 알아요 (어려운 것만)</option>
           </select>
-          <div class="lbl" style="margin-top:12px;">단어 개수</div>
+          <div class="lbl" style="margin-top:12px;" data-i18n="vocCountLabel">단어 개수</div>
           <select id="vocCount" class="sel">
-            <option value="80" selected>넉넉하게 (최대 80개)</option>
-            <option value="50">보통 (최대 50개)</option>
-            <option value="28">핵심만 (최대 28개)</option>
+            <option value="80" selected data-i18n="voc80">넉넉하게 (최대 80개)</option>
+            <option value="50" data-i18n="voc50">보통 (최대 50개)</option>
+            <option value="28" data-i18n="voc28">핵심만 (최대 28개)</option>
           </select>
-          <button class="btn btn-pur btn-sm" style="margin-top:14px;" id="vocBtn" onclick="makeVocab()">📚 단어장 만들기</button>
-          <div class="tip">강의 분량이 적으면 요청한 개수보다 적게 나올 수 있습니다. 그때는 몇 개가 나왔는지 알려드립니다.</div>
+          <button class="btn btn-pur btn-sm" style="margin-top:14px;" id="vocBtn" data-i18n="vocBtn" onclick="makeVocab()">📚 단어장 만들기</button>
+          <div class="tip" data-i18n="vocTip">강의 분량이 적으면 요청한 개수보다 적게 나올 수 있습니다. 그때는 몇 개가 나왔는지 알려드립니다.</div>
         </div>
         <div id="vocArea"></div>
       </div>
@@ -525,11 +526,11 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 
   <!-- ═══════════ 보관함 ═══════════ -->
   <div id="sec-arc" class="sec">
-    <input type="text" id="arcSearch" class="inp" placeholder="🔍 제목으로 찾기" style="margin-bottom:10px;" oninput="renderArc()">
+    <input type="text" id="arcSearch" class="inp" data-i18n-ph="arcSearchPh" placeholder="🔍 제목으로 찾기" style="margin-bottom:10px;" oninput="renderArc()">
     <div class="seg2" id="segArcSort" style="font-size:12px;">
-      <button data-v="date" class="on" onclick="setArcSort('date')">🕒 날짜순</button>
-      <button data-v="name" onclick="setArcSort('name')">🔤 이름순</button>
-      <button data-v="size" onclick="setArcSort('size')">📦 용량순</button>
+      <button data-v="date" class="on" data-i18n="arcSortDate" onclick="setArcSort('date')">🕒 날짜순</button>
+      <button data-v="name" data-i18n="arcSortName" onclick="setArcSort('name')">🔤 이름순</button>
+      <button data-v="size" data-i18n="arcSortSize" onclick="setArcSort('size')">📦 용량순</button>
     </div>
     <div id="arcList"></div>
   </div>
@@ -537,17 +538,6 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 
 <!-- 단어 게임 -->
 <div class="gov" id="gameOv"><div id="gameBody"></div></div>
-
-<!-- 실시간 번역 토글 -->
-<div class="fabtip" id="fabTip"></div>
-<button class="fab" id="koFab" title="실시간 번역" onclick="toggleKo()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="23 4 23 10 17 10"></polyline>
-    <polyline points="1 20 1 14 7 14"></polyline>
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-  </svg>
-  <span class="bdg2" id="koLangBdg">한</span>
-</button>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
@@ -616,8 +606,12 @@ const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
              (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IS_MOBILE=IS_IOS||/Android/i.test(navigator.userAgent);
 let lastPcmAt=0,stalled=false;          // 화면이 꺼져 녹음이 멈추는 것을 감지
-let liveKo=false,koQueue=[],koBusy=0;   // 실시간 번역
-const TR_LANGS={ko:{name:'한국어',badge:'한'},es:{name:'스페인어',badge:'ES'},ja:{name:'일본어',badge:'JP'},zh:{name:'중국어',badge:'中'}};
+const TR_LANGS={
+  ko:{name:'한국어',label:'한국어'},
+  ja:{name:'일본어',label:'日本語'},
+  zh:{name:'중국어',label:'中文'},
+  es:{name:'스페인어',label:'Español'}
+};
 let trLang='ko';                        // 번역 대상 언어
 const extendSec=()=>Math.max(6,Math.round(chunkSec*0.45)); // 말이 안 끊길 때 더 기다려주는 한계
 
@@ -666,7 +660,7 @@ window.addEventListener('load',async()=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
   });
-  $('koFab').classList.add('show');paintKoFab();paintKoLangBadge();
+  paintTrLangSel();applyUILang(trLang);
   $('appPass').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();savePass();}});
   detectServer();
   await recovery();renderArc();
@@ -779,7 +773,6 @@ function goTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.sec').forEach(x=>x.classList.remove('on'));
   $('tab-'+t).classList.add('on');$('sec-'+t).classList.add('on');
-  $('koFab').classList.toggle('show',t==='rec');
   if(t==='arc')renderArc(); if(t==='std')renderStudy();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1047,7 +1040,7 @@ async function start(){
     date:now.toLocaleString('ko-KR'),chunks:[],transcript:'',duration:0,complete:false,
     summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
   session.chunkSec=chunkSec;
-  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;koQueue=[];
+  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
   $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
@@ -1149,7 +1142,7 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
     sess.chunks.sort((a,b)=>a.seq-b.seq);
     rebuild(sess);save(sess);del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
-    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);if(liveKo&&text&&!filt)enqueueKo(rec);}
+    if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);}
   }catch(e){
     console.warn('구간 실패',n,e.message);
     if(retry<5){await new Promise(r=>setTimeout(r,Math.min(30000,1500*Math.pow(2,retry))));
@@ -1393,71 +1386,253 @@ function needKey(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   실시간 한국어 번역 (우측 하단 ↻ 버튼)
-   전사가 끝난 구간이 생길 때마다 곧바로 한국어로 옮겨 영어 아래에 붙인다.
-   전사와 별개의 요청이라 받아쓰기 속도를 늦추지 않는다(최대 2개 동시).
+   번역 (각 문단 아래 ⟲ 버튼으로 그때그때 번역)
+   드롭다운에서 고른 언어로 번역한다. 전사와 별개의 요청이라 받아쓰기 속도에
+   영향을 주지 않는다.
    ═══════════════════════════════════════════════════════════════════════ */
-function toggleKo(){
-  if(!liveKo&&!hasAuth()){if(needKey())return;}
-  liveKo=!liveKo;
-  paintKoFab();
-  const langName=TR_LANGS[trLang].name;
-  if(liveKo&&session){
-    bodyChunks(session).forEach(c=>{if(!c.ko||c.koLang!==trLang)enqueueKo(c);});
-    fabToast('실시간 '+langName+' 번역 켜짐');
-  }else{
-    koQueue=[];fabToast('실시간 번역 꺼짐');
-  }
-}
-function paintKoFab(){
-  const f=$('koFab');if(!f)return;
-  f.classList.toggle('on',liveKo);
-  const langName=TR_LANGS[trLang].name;
-  f.title=liveKo?('실시간 '+langName+' 번역 켜짐 — 누르면 끔'):('실시간 '+langName+' 번역 켜기');
-}
-function paintKoLangBadge(){
-  const b=$('koLangBdg');if(b)b.innerText=TR_LANGS[trLang].badge;
+function paintTrLangSel(){
   const sel=$('trLangSel');if(sel&&sel.value!==trLang)sel.value=trLang;
 }
 function setTrLang(v){
   if(!TR_LANGS[v]||v===trLang)return;
   trLang=v;
-  saveCfg();paintKoLangBadge();paintKoFab();
-  fabToast(TR_LANGS[trLang].name+'로 번역하도록 바뀌었습니다');
-  // 언어를 바꾸면 기존 캐시된 번역은 이전 언어라서 다시 번역해야 함(화면에 이미 떠 있는 것은 유지, 켜져 있으면 새로 요청)
-  if(liveKo&&session)bodyChunks(session).forEach(c=>{if(c.koLang&&c.koLang!==trLang)enqueueKo(c);});
+  saveCfg();paintTrLangSel();applyUILang(trLang);
 }
-let fabT=null;
-function fabToast(msg){
-  const t=$('fabTip');if(!t)return;
-  t.innerText=msg;t.classList.add('show');
-  clearTimeout(fabT);fabT=setTimeout(()=>t.classList.remove('show'),2200);
+/* ═══════════════════════════════════════════════════════════════════════
+   화면 UI 번역 (버튼·라벨·안내문 등 고정 문구)
+   언어를 바꾸면 요약·질문·단어장 등 "새로 만드는" 내용뿐 아니라
+   화면에 이미 떠 있는 고정 문구(버튼, 라벨, 안내)도 함께 바뀐다.
+   이미 만들어진 강의 내용(받아쓰기, 요약 등)은 그대로 둔다 — 다시 만들어야만 새 언어로 나온다.
+   ═══════════════════════════════════════════════════════════════════════ */
+const UI_STRINGS={
+  ko:{
+    headerTitle:'강의 노트',headerSub:'녹음 · 받아쓰기 · 요약 · 질문 · 단어장',
+    tabRec:'🎙 녹음',tabTxt:'📝 텍스트',tabStd:'📚 학습',tabArc:'🗂 보관함',
+    keyLabel:'OpenAI API 키 <span style="font-weight:600;color:#bbb;">— 이 브라우저에만 저장됩니다</span>',
+    keyTip:'키가 없으면 <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
+    keyDone:'🔑 API 키 저장됨',keyChange:'변경',
+    srvSecure:'🔒 보안 모드 — 키는 서버에 있습니다',srvNoInput:'입력 불필요',
+    passLabel:'내 접속 코드',passPh:'발급받은 코드',passBtn:'확인',
+    passTip:'이 기기에만 저장됩니다. 한 번만 넣으면 됩니다.',forgetPass:'코드 변경',
+    srcLabel:'소리를 어디서 가져올까요?',
+    srcMic:'🎙<br>마이크<br><span style="font-weight:600;font-size:10.5px;">오프라인 강의</span>',
+    srcDisp:'💻<br>컴퓨터 소리<br><span style="font-weight:600;font-size:10.5px;">온라인 강의</span>',
+    srcBoth:'🎙+💻<br>둘 다<br><span style="font-weight:600;font-size:10.5px;">질문까지</span>',
+    ampLabel:'증폭 강도',
+    ampTip:'멀리 있는 교수님 목소리가 자꾸 끊기면 오른쪽으로. 큰 소리가 나도 증폭이 잠깐 줄었다 <b>곧바로 다시 올라옵니다</b>.',
+    chunkLabel:'받아쓰기 간격',
+    chunk10:'10초<br><span style="font-weight:600;font-size:10.5px;">가장 빠름</span>',
+    chunk20:'20초<br><span style="font-weight:600;font-size:10.5px;">균형 · 권장</span>',
+    chunk30:'30초<br><span style="font-weight:600;font-size:10.5px;">가장 정확</span>',
+    chunkTip:'짧을수록 화면에 빨리 뜹니다. 대신 비용이 조금 늘고, 앞뒤 문맥이 짧아져 정확도가 살짝 내려갑니다. 어느 쪽이든 <b>말이 끊기는 지점에서만 잘라서</b> 단어가 반토막 나지는 않습니다.',
+    inputLevelLabel:'🎚 입력 레벨',lvTxt:'테스트를 눌러 소리가 들어오는지 확인하세요',testBtn:'소리 테스트',
+    statusTxt:'대기 중',metaIdle:'아직 녹음하지 않았습니다',
+    startBtn:'🎙 녹음 시작',pauseBtn:'⏸ 일시정지',stopBtn:'■ 종료',
+    trLabel:'🌐 번역 언어',trTip:'각 문단 아래 ⟲ 버튼을 누르면 이 언어로 번역해서 보여줍니다.',
+    uploadBtn:'📁 음성 파일 업로드 (+)',
+    uploadTip:'이미 녹음해 둔 파일(mp3, m4a, wav 등)을 통째로 올리면 자동으로 구간을 나눠 한꺼번에 전사합니다. 2시간짜리도 몇 분이면 끝나요. 파일이 아주 길면(2시간 이상) 휴대폰보다 PC에서 여는 걸 추천해요.',
+    transcriptLabel:'받아쓰기',padHint:'녹음을 시작하면<br>여기에 텍스트가 쌓입니다',
+    toStudyBtn:'📚 학습 화면으로 (요약 · 질문 · 단어장)',
+    txtTitleLabel:'제목 (선택)',txtTitlePh:'예: 9/3 지구과학 1강',
+    txtInputLabel:'강의 텍스트 붙여넣기',
+    txtInputPh:'예전에 다운받아 둔 받아쓰기 텍스트, 자막 파일 내용, 강의 스크립트 등을 그대로 붙여넣으세요.\n\n시간 표시([12:34])가 들어 있으면 그대로 인식해서 답변에 위치를 표시해 줍니다.',
+    txtFileTip:'파일에서 불러올 수도 있습니다 (.txt / .md / .srt / .vtt)',
+    txtFileBtn:'📂 파일에서 불러오기',txtClearBtn:'지우기',txtStartBtn:'📚 학습 시작',
+    stdEmpty:'아직 열린 강의가 없습니다.<br>녹음을 마치거나, 텍스트를 붙여넣거나,<br>보관함에서 하나를 열어보세요.',
+    renameTitle:'제목 수정',renameBtn:'✏️ 제목',dlTextBtn:'📄 전문',copyTextBtn:'📋 복사',
+    segSum:'📋 요약',segQa:'💬 질문',segQuiz:'📝 문제',segVoc:'📚 단어장',segFull:'📜 전문',
+    sumBtn:'🤖 요약 만들기',sumTip:'1시간 강의도 통째로 읽고 시간대별로 정리합니다.',
+    qaSuggestLabel:'💡 이런 게 궁금하지 않으세요?',qaRegenLink:'새로 뽑기',
+    qaSugBoxTip:'아래 버튼을 누르면 강의 내용에서 질문을 만들어 드립니다.',sugBtn:'✨ AI 질문 생성',
+    qInputPh:'강의 내용에 대해 무엇이든 물어보세요 (Enter로 전송, Shift+Enter 줄바꿈)\n예) 왜 최신판 교재를 써야 한다고 했나요?',
+    askBtn:'질문하기',
+    quizSrcLabel:'강의 전체에서 문제를 뽑습니다',quizCnt10:'10문제',quizCnt15:'15문제',quizCnt20:'20문제',
+    quizBtn:'📝 문제 만들기',
+    quizTip:'강의를 처음부터 끝까지 고르게 나눠서, 앞부분만 나오지 않게 문제를 만듭니다. 4지선다와 단답형이 섞여 나오고 채점 후 해설과 근거 위치를 보여줍니다.',
+    vocLevelLabel:'내 영어 수준',
+    vocLow:'중학교 수준까지는 알아요 (그 이상만 뽑기)',vocMid:'고등학교 기초까지 알아요',vocHigh:'웬만한 건 알아요 (어려운 것만)',
+    vocCountLabel:'단어 개수',
+    voc80:'넉넉하게 (최대 80개)',voc50:'보통 (최대 50개)',voc28:'핵심만 (최대 28개)',
+    vocBtn:'📚 단어장 만들기',
+    vocTip:'강의 분량이 적으면 요청한 개수보다 적게 나올 수 있습니다. 그때는 몇 개가 나왔는지 알려드립니다.',
+    arcSearchPh:'🔍 제목으로 찾기',arcSortDate:'🕒 날짜순',arcSortName:'🔤 이름순',arcSortSize:'📦 용량순'
+  },
+  ja:{
+    headerTitle:'講義ノート',headerSub:'録音・書き起こし・要約・質問・単語帳',
+    tabRec:'🎙 録音',tabTxt:'📝 テキスト',tabStd:'📚 学習',tabArc:'🗂 保管庫',
+    keyLabel:'OpenAI API キー <span style="font-weight:600;color:#bbb;">— このブラウザにのみ保存されます</span>',
+    keyTip:'キーがない場合は <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
+    keyDone:'🔑 APIキー保存済み',keyChange:'変更',
+    srvSecure:'🔒 セキュアモード — キーはサーバーにあります',srvNoInput:'入力不要',
+    passLabel:'アクセスコード',passPh:'発行されたコード',passBtn:'確認',
+    passTip:'このデバイスにのみ保存されます。一度だけ入力すれば大丈夫です。',forgetPass:'コード変更',
+    srcLabel:'どこから音声を取り込みますか？',
+    srcMic:'🎙<br>マイク<br><span style="font-weight:600;font-size:10.5px;">オフライン講義</span>',
+    srcDisp:'💻<br>PCの音声<br><span style="font-weight:600;font-size:10.5px;">オンライン講義</span>',
+    srcBoth:'🎙+💻<br>両方<br><span style="font-weight:600;font-size:10.5px;">質問まで</span>',
+    ampLabel:'増幅の強さ',
+    ampTip:'遠くの先生の声が途切れがちなら右側へ。大きな音が出ても増幅は一時的に下がり<b>すぐに元に戻ります</b>。',
+    chunkLabel:'書き起こしの間隔',
+    chunk10:'10秒<br><span style="font-weight:600;font-size:10.5px;">最速</span>',
+    chunk20:'20秒<br><span style="font-weight:600;font-size:10.5px;">バランス・推奨</span>',
+    chunk30:'30秒<br><span style="font-weight:600;font-size:10.5px;">最も正確</span>',
+    chunkTip:'短いほど画面に早く表示されます。代わりに費用が少し増え、前後の文脈が短くなるので精度がわずかに下がります。どちらにしても<b>話が途切れる地点でだけ切る</b>ので単語が途中で分断されることはありません。',
+    inputLevelLabel:'🎚 入力レベル',lvTxt:'テストを押して音が入っているか確認してください',testBtn:'音声テスト',
+    statusTxt:'待機中',metaIdle:'まだ録音していません',
+    startBtn:'🎙 録音開始',pauseBtn:'⏸ 一時停止',stopBtn:'■ 終了',
+    trLabel:'🌐 翻訳言語',trTip:'各段落の下にある⟲ボタンを押すと、この言語に翻訳して表示します。',
+    uploadBtn:'📁 音声ファイルをアップロード (+)',
+    uploadTip:'すでに録音済みのファイル（mp3, m4a, wavなど）をそのままアップロードすると、自動で区間を分けて一括で書き起こします。2時間の録音でも数分で完了します。ファイルがとても長い場合（2時間以上）は、スマホよりPCで開くことをお勧めします。',
+    transcriptLabel:'書き起こし',padHint:'録音を始めると<br>ここにテキストが表示されます',
+    toStudyBtn:'📚 学習画面へ（要約・質問・単語帳）',
+    txtTitleLabel:'タイトル（任意）',txtTitlePh:'例：9/3 地学 第1回',
+    txtInputLabel:'講義テキストを貼り付け',
+    txtInputPh:'以前ダウンロードした書き起こしテキスト、字幕ファイルの内容、講義スクリプトなどをそのまま貼り付けてください。\n\nタイムスタンプ（[12:34]）が含まれていれば、そのまま認識して回答に位置を表示します。',
+    txtFileTip:'ファイルから読み込むこともできます (.txt / .md / .srt / .vtt)',
+    txtFileBtn:'📂 ファイルから読み込む',txtClearBtn:'消去',txtStartBtn:'📚 学習開始',
+    stdEmpty:'まだ開いている講義がありません。<br>録音を終えるか、テキストを貼り付けるか、<br>保管庫から一つ開いてみてください。',
+    renameTitle:'タイトルを編集',renameBtn:'✏️ タイトル',dlTextBtn:'📄 全文',copyTextBtn:'📋 コピー',
+    segSum:'📋 要約',segQa:'💬 質問',segQuiz:'📝 問題',segVoc:'📚 単語帳',segFull:'📜 全文',
+    sumBtn:'🤖 要約を作る',sumTip:'1時間の講義でも全体を読み込み、時間帯別に整理します。',
+    qaSuggestLabel:'💡 こんなことが気になりませんか？',qaRegenLink:'再生成',
+    qaSugBoxTip:'下のボタンを押すと、講義内容から質問を作成します。',sugBtn:'✨ AI質問生成',
+    qInputPh:'講義内容について何でも質問してください（Enterで送信、Shift+Enterで改行）\n例）なぜ最新版の教材を使うべきだと言ったのですか？',
+    askBtn:'質問する',
+    quizSrcLabel:'講義全体から問題を出します',quizCnt10:'10問',quizCnt15:'15問',quizCnt20:'20問',
+    quizBtn:'📝 問題を作る',
+    quizTip:'講義を最初から最後まで均等に分けて、前半だけに偏らないように問題を作ります。4択と記述式が混ざって出題され、採点後に解説と根拠の位置を表示します。',
+    vocLevelLabel:'自分の英語レベル',
+    vocLow:'中学レベルまでは分かります（それ以上だけ抽出）',vocMid:'高校の基礎までは分かります',vocHigh:'ほとんど分かります（難しいものだけ）',
+    vocCountLabel:'単語数',
+    voc80:'たっぷり（最大80個）',voc50:'普通（最大50個）',voc28:'核心だけ（最大28個）',
+    vocBtn:'📚 単語帳を作る',
+    vocTip:'講義の量が少ないと、要求した数より少なく出ることがあります。その場合は何個出たかお知らせします。',
+    arcSearchPh:'🔍 タイトルで検索',arcSortDate:'🕒 日付順',arcSortName:'🔤 名前順',arcSortSize:'📦 容量順'
+  },
+  zh:{
+    headerTitle:'讲课笔记',headerSub:'录音・转录・总结・问答・单词表',
+    tabRec:'🎙 录音',tabTxt:'📝 文本',tabStd:'📚 学习',tabArc:'🗂 存档',
+    keyLabel:'OpenAI API 密钥 <span style="font-weight:600;color:#bbb;">— 仅保存在此浏览器中</span>',
+    keyTip:'没有密钥？去 <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
+    keyDone:'🔑 API 密钥已保存',keyChange:'更改',
+    srvSecure:'🔒 安全模式 — 密钥保存在服务器',srvNoInput:'无需输入',
+    passLabel:'我的访问码',passPh:'发放的代码',passBtn:'确认',
+    passTip:'仅保存在此设备上，只需输入一次。',forgetPass:'更改代码',
+    srcLabel:'要从哪里获取声音？',
+    srcMic:'🎙<br>麦克风<br><span style="font-weight:600;font-size:10.5px;">线下课程</span>',
+    srcDisp:'💻<br>电脑声音<br><span style="font-weight:600;font-size:10.5px;">线上课程</span>',
+    srcBoth:'🎙+💻<br>两者都要<br><span style="font-weight:600;font-size:10.5px;">包含提问</span>',
+    ampLabel:'增益强度',
+    ampTip:'如果远处老师的声音总是断断续续，就调到右边。即使声音突然变大，增益也只会短暂降低，<b>随即自动恢复</b>。',
+    chunkLabel:'转录间隔',
+    chunk10:'10秒<br><span style="font-weight:600;font-size:10.5px;">最快</span>',
+    chunk20:'20秒<br><span style="font-weight:600;font-size:10.5px;">均衡・推荐</span>',
+    chunk30:'30秒<br><span style="font-weight:600;font-size:10.5px;">最准确</span>',
+    chunkTip:'越短越能更快显示在屏幕上。不过费用会稍微增加，前后语境变短，准确率也会略微下降。无论哪种方式，都只会在<b>话语停顿处切分</b>，不会把单词截断一半。',
+    inputLevelLabel:'🎚 输入电平',lvTxt:'点击测试，确认是否有声音输入',testBtn:'声音测试',
+    statusTxt:'待命中',metaIdle:'还没有开始录音',
+    startBtn:'🎙 开始录音',pauseBtn:'⏸ 暂停',stopBtn:'■ 结束',
+    trLabel:'🌐 翻译语言',trTip:'点击每段下方的⟲按钮，即可用该语言显示翻译。',
+    uploadBtn:'📁 上传音频文件 (+)',
+    uploadTip:'把已经录好的文件（mp3、m4a、wav 等）整段上传，会自动分段并一次性转录。2小时的录音也只需几分钟。如果文件非常长（超过2小时），建议在电脑上打开而不是手机。',
+    transcriptLabel:'转录文本',padHint:'开始录音后<br>文字会显示在这里',
+    toStudyBtn:'📚 进入学习页面（总结・问答・单词表）',
+    txtTitleLabel:'标题（可选）',txtTitlePh:'例：9/3 地球科学 第1课',
+    txtInputLabel:'粘贴课程文本',
+    txtInputPh:'请直接粘贴之前下载好的转录文本、字幕文件内容、讲课稿等。\n\n如果包含时间标记（[12:34]），会自动识别并在回答中标注位置。',
+    txtFileTip:'也可以从文件中加载 (.txt / .md / .srt / .vtt)',
+    txtFileBtn:'📂 从文件加载',txtClearBtn:'清除',txtStartBtn:'📚 开始学习',
+    stdEmpty:'还没有打开任何课程。<br>可以先完成录音、粘贴文本，<br>或者从存档中打开一个。',
+    renameTitle:'修改标题',renameBtn:'✏️ 标题',dlTextBtn:'📄 全文',copyTextBtn:'📋 复制',
+    segSum:'📋 总结',segQa:'💬 问答',segQuiz:'📝 练习题',segVoc:'📚 单词表',segFull:'📜 全文',
+    sumBtn:'🤖 生成总结',sumTip:'即使是1小时的课程，也会整体读取并按时间段整理。',
+    qaSuggestLabel:'💡 你是不是也想知道这些？',qaRegenLink:'重新生成',
+    qaSugBoxTip:'点击下方按钮，即可根据课程内容生成问题。',sugBtn:'✨ AI 生成问题',
+    qInputPh:'关于课程内容，可以问任何问题（Enter 发送，Shift+Enter 换行）\n例：为什么说要用最新版教材？',
+    askBtn:'提问',
+    quizSrcLabel:'从整个课程中抽取题目',quizCnt10:'10题',quizCnt15:'15题',quizCnt20:'20题',
+    quizBtn:'📝 生成练习题',
+    quizTip:'会把整节课从头到尾均匀划分出题，不会只集中在前面部分。题型会混合选择题和简答题，评分后会显示解析和出处位置。',
+    vocLevelLabel:'我的英语水平',
+    vocLow:'初中水平以内都懂（只挑更难的）',vocMid:'高中基础水平都懂',vocHigh:'大部分都懂（只挑难的）',
+    vocCountLabel:'单词数量',
+    voc80:'充足（最多80个）',voc50:'普通（最多50个）',voc28:'仅核心（最多28个）',
+    vocBtn:'📚 生成单词表',
+    vocTip:'如果课程内容较少，可能会少于请求的数量。届时会告知实际生成了多少个。',
+    arcSearchPh:'🔍 按标题搜索',arcSortDate:'🕒 按日期',arcSortName:'🔤 按名称',arcSortSize:'📦 按大小'
+  },
+  es:{
+    headerTitle:'Notas de clase',headerSub:'Grabación · Transcripción · Resumen · Preguntas · Vocabulario',
+    tabRec:'🎙 Grabar',tabTxt:'📝 Texto',tabStd:'📚 Estudio',tabArc:'🗂 Archivo',
+    keyLabel:'Clave de API de OpenAI <span style="font-weight:600;color:#bbb;">— solo se guarda en este navegador</span>',
+    keyTip:'¿No tienes una clave? <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
+    keyDone:'🔑 Clave de API guardada',keyChange:'Cambiar',
+    srvSecure:'🔒 Modo seguro — la clave está en el servidor',srvNoInput:'No requiere entrada',
+    passLabel:'Mi código de acceso',passPh:'Código proporcionado',passBtn:'Confirmar',
+    passTip:'Se guarda solo en este dispositivo. Solo necesitas ingresarlo una vez.',forgetPass:'Cambiar código',
+    srcLabel:'¿De dónde quieres capturar el audio?',
+    srcMic:'🎙<br>Micrófono<br><span style="font-weight:600;font-size:10.5px;">Clase presencial</span>',
+    srcDisp:'💻<br>Sonido del PC<br><span style="font-weight:600;font-size:10.5px;">Clase en línea</span>',
+    srcBoth:'🎙+💻<br>Ambos<br><span style="font-weight:600;font-size:10.5px;">Incluye preguntas</span>',
+    ampLabel:'Nivel de amplificación',
+    ampTip:'Si la voz del profesor a lo lejos se corta, desliza hacia la derecha. Aunque haya un sonido fuerte, la amplificación bajará solo un momento y <b>volverá a subir enseguida</b>.',
+    chunkLabel:'Intervalo de transcripción',
+    chunk10:'10 s<br><span style="font-weight:600;font-size:10.5px;">Más rápido</span>',
+    chunk20:'20 s<br><span style="font-weight:600;font-size:10.5px;">Equilibrado · recomendado</span>',
+    chunk30:'30 s<br><span style="font-weight:600;font-size:10.5px;">Más preciso</span>',
+    chunkTip:'Cuanto más corto, más rápido aparece en pantalla. A cambio, el costo aumenta un poco y el contexto se acorta, bajando ligeramente la precisión. En cualquier caso, <b>el corte ocurre solo donde la voz hace una pausa</b>, así que las palabras nunca quedan a la mitad.',
+    inputLevelLabel:'🎚 Nivel de entrada',lvTxt:'Pulsa probar para comprobar si el audio se está captando',testBtn:'Probar sonido',
+    statusTxt:'En espera',metaIdle:'Aún no se ha grabado nada',
+    startBtn:'🎙 Iniciar grabación',pauseBtn:'⏸ Pausar',stopBtn:'■ Detener',
+    trLabel:'🌐 Idioma de traducción',trTip:'Pulsa el botón ⟲ debajo de cada párrafo para ver la traducción en este idioma.',
+    uploadBtn:'📁 Subir archivo de audio (+)',
+    uploadTip:'Si subes un archivo ya grabado (mp3, m4a, wav, etc.) completo, se dividirá automáticamente en segmentos y se transcribirá todo de una vez. Incluso una grabación de 2 horas tarda solo unos minutos. Si el archivo es muy largo (más de 2 horas), es mejor abrirlo en una computadora que en el teléfono.',
+    transcriptLabel:'Transcripción',padHint:'Al iniciar la grabación<br>el texto aparecerá aquí',
+    toStudyBtn:'📚 Ir a la pantalla de estudio (resumen, preguntas, vocabulario)',
+    txtTitleLabel:'Título (opcional)',txtTitlePh:'Ej.: 3/9 Ciencias de la Tierra, clase 1',
+    txtInputLabel:'Pega el texto de la clase',
+    txtInputPh:'Pega directamente el texto de transcripción, el contenido de un archivo de subtítulos o el guion de la clase que ya tengas descargado.\n\nSi contiene marcas de tiempo ([12:34]), se reconocerán automáticamente y se mostrarán en las respuestas.',
+    txtFileTip:'También puedes cargarlo desde un archivo (.txt / .md / .srt / .vtt)',
+    txtFileBtn:'📂 Cargar desde archivo',txtClearBtn:'Borrar',txtStartBtn:'📚 Comenzar estudio',
+    stdEmpty:'Aún no hay ninguna clase abierta.<br>Termina una grabación, pega un texto<br>o abre una desde el archivo.',
+    renameTitle:'Editar título',renameBtn:'✏️ Título',dlTextBtn:'📄 Texto completo',copyTextBtn:'📋 Copiar',
+    segSum:'📋 Resumen',segQa:'💬 Preguntas',segQuiz:'📝 Cuestionario',segVoc:'📚 Vocabulario',segFull:'📜 Texto completo',
+    sumBtn:'🤖 Generar resumen',sumTip:'Incluso una clase de 1 hora se lee por completo y se organiza por tramos de tiempo.',
+    qaSuggestLabel:'💡 ¿Tienes curiosidad por esto?',qaRegenLink:'Generar de nuevo',
+    qaSugBoxTip:'Pulsa el botón de abajo para generar preguntas a partir del contenido de la clase.',sugBtn:'✨ Generar preguntas con IA',
+    qInputPh:'Pregunta lo que quieras sobre el contenido de la clase (Enter para enviar, Shift+Enter para salto de línea)\nEj.: ¿Por qué dijo que había que usar la edición más reciente del libro?',
+    askBtn:'Preguntar',
+    quizSrcLabel:'Las preguntas se generan de toda la clase',quizCnt10:'10 preguntas',quizCnt15:'15 preguntas',quizCnt20:'20 preguntas',
+    quizBtn:'📝 Generar cuestionario',
+    quizTip:'Las preguntas se distribuyen de manera uniforme a lo largo de toda la clase, para que no se concentren solo al principio. Se mezclan preguntas de opción múltiple y de respuesta corta, y tras calificar se muestra la explicación y la ubicación de referencia.',
+    vocLevelLabel:'Mi nivel de inglés',
+    vocLow:'Conozco hasta secundaria básica (solo extraer lo más avanzado)',vocMid:'Conozco hasta lo básico de secundaria',vocHigh:'Conozco casi todo (solo lo difícil)',
+    vocCountLabel:'Cantidad de palabras',
+    voc80:'Abundante (máx. 80)',voc50:'Normal (máx. 50)',voc28:'Solo lo esencial (máx. 28)',
+    vocBtn:'📚 Generar vocabulario',
+    vocTip:'Si la clase es corta, es posible que salgan menos palabras de las solicitadas. En ese caso, se te informará cuántas se generaron.',
+    arcSearchPh:'🔍 Buscar por título',arcSortDate:'🕒 Por fecha',arcSortName:'🔤 Por nombre',arcSortSize:'📦 Por tamaño'
+  }
+};
+function applyUILang(lang){
+  const L=UI_STRINGS[lang]||UI_STRINGS.ko;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');if(L[k]!=null)el.textContent=L[k];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{
+    const k=el.getAttribute('data-i18n-html');if(L[k]!=null)el.innerHTML=L[k];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const k=el.getAttribute('data-i18n-ph');if(L[k]!=null)el.placeholder=L[k];
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{
+    const k=el.getAttribute('data-i18n-title');if(L[k]!=null)el.title=L[k];
+  });
+  document.documentElement.lang=lang==='ko'?'ko':lang;
+  if(L.headerTitle)document.title=L.headerTitle;
 }
 function trPrompt(langName){
   return `강의 녹취의 한 조각이다. 자연스러운 ${langName}로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 ${langName}면 그대로 출력한다. 전문용어는 ${langName} 뒤 괄호에 원어(영어)를 남긴다.`;
-}
-function enqueueKo(c){
-  if(!liveKo||!c||!c.text||!c.text.trim())return;
-  if(c.ko&&c.koLang===trLang)return;           // 같은 언어로 이미 번역돼 있으면 재요청 안 함
-  if(koQueue.indexOf(c)!==-1)return;
-  koQueue.push(c);paintKoFor(c,true);pumpKo();
-}
-function pumpKo(){
-  while(liveKo&&koBusy<2&&koQueue.length){
-    const c=koQueue.shift();
-    if(!c||(c.ko&&c.koLang===trLang))continue;
-    koBusy++;
-    const lang=trLang,langName=TR_LANGS[lang].name;
-    (async()=>{
-      try{
-        const t=await llm([{role:'system',content:trPrompt(langName)},
-          {role:'user',content:c.text}],{temp:.2,maxTokens:800});
-        c.ko=(t||'').trim();c.koLang=lang;
-        if(session)save(session);
-      }catch(e){console.warn('번역 실패',e.message);c.ko='';c.koLang=lang;}
-      finally{koBusy--;paintKoFor(c,false);pumpKo();}
-    })();
-  }
 }
 /* .ko 줄은 번역 버튼 줄(.trrow) 위에 들어가야 한다 */
 function putKo(host,txt,waiting){
@@ -1471,20 +1646,6 @@ function putKo(host,txt,waiting){
   el.className='ko'+(waiting?' wait':'');
   el.innerText=waiting?(TR_LANGS[trLang].name+'로 옮기는 중…'):txt;
   return el;
-}
-function paintKoFor(c,waiting){
-  if(!c)return;
-  const host=$('ck-'+c.seq);
-  if(host){
-    if(!c.ko&&!waiting){const el=host.querySelector('.ko');if(el)el.remove();}
-    else{putKo(host,c.ko,waiting);
-      const b=host.querySelector('.trbtn');if(b&&c.ko)b.classList.add('on');}
-  }
-  const tl=document.getElementById('tl-'+label(c));
-  if(tl&&c.ko&&!tl.querySelector('.ko')){
-    putKo(tl,c.ko,false);
-    const b=tl.querySelector('.trbtn');if(b)b.classList.add('on');
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1550,7 +1711,7 @@ async function makeSummary(){
       for(let i=0;i<parts.length;i++){
         b.innerText=`요약 만드는 중... (${i+1}/${parts.length})`;
         outs.push(await llm([
-          {role:'system',content:`강의 받아쓰기의 일부다. 빠짐없이 시간 순서대로 개조식으로 정리해라. ${POS_RULE(session)} 한국어로.`},
+          {role:'system',content:`강의 받아쓰기의 일부다. 빠짐없이 시간 순서대로 개조식으로 정리해라. ${POS_RULE(session)} ${TR_LANGS[trLang].name}로.`},
           {role:'user',content:parts[i]}],{temp:.2,maxTokens:1600}));
       }
       partial=outs.join('\n\n');base=partial;
@@ -1558,7 +1719,7 @@ async function makeSummary(){
     }
     const sys=`너는 강의를 들은 한국인 학생을 돕는 조교다. 아래는 강의를 음성인식으로 받아쓴(또는 붙여넣은) 원문이고, 각 줄 앞에 위치 표시가 붙어 있다. 인식 오류나 문장 끊김이 있으니 문맥으로 자연스럽게 이해해서 정리해라.
 
-반드시 다음 형식의 한국어 마크다운으로 작성한다:
+반드시 다음 형식의 ${TR_LANGS[trLang].name} 마크다운으로 작성한다:
 
 ## 한눈에 보기
 (강의 전체를 4~6문장으로. 무엇을 배우는 시간이었는지)
@@ -1690,7 +1851,7 @@ async function genQuestions(force){
 - **8개가 서로 완전히 다른 주제여야 한다.** 같은 문장 하나를 여러 각도로 묻는 질문(예: "언제 시작됐나" / "그때 형태는" / "그 외 재료는")은 결국 같은 답이 나오므로 만들지 마라. 하나만 남겨라.
 - 강의를 처음부터 끝까지 훑어서 **서로 다른 대목**을 겨냥하라. 앞부분에만 몰리면 안 된다.
 - "왜", "어떻게", "무슨 차이"처럼 이해를 깊게 하는 질문 위주.
-- 각 질문은 한국어 한 문장, 20~45자.
+- 각 질문은 ${TR_LANGS[trLang].name} 한 문장, 20~45자.
 ${asked.length?`\n[이미 물어본 질문 — 이것들과 의미가 겹치면 안 된다]\n${asked.map(q=>'- '+q).join('\n')}`:''}
 ${cited.length?`\n[이미 답변에 쓰인 대목 — 되도록 다른 대목을 겨냥하라]\n${cited.join(', ')}`:''}
 ${outline.length?`\n[강의 목차]\n${outline.map(o=>'- '+o).join('\n')}`:''}
@@ -1840,7 +2001,7 @@ async function ask(forceQ,baseIdx){
 `;
 
     const sys=`너는 이 강의를 통째로 들은 조교다. 아래 [강의 원문]에는 각 줄 앞에 위치 표시가 붙어 있다.
-학생의 질문에 한국어로 답한다.
+학생의 질문에 ${TR_LANGS[trLang].name}로 답한다.
 
 답변 형식:
 1) 먼저 핵심을 2~5문장으로 설명한다.
@@ -2013,11 +2174,11 @@ async function makeQuiz(){
 - 유형을 섞는다: "mc"(4지선다) 약 70%, "short"(단어~한 문장 단답) 약 30%.
 - 지엽적인 숫자 암기보다 개념 이해와 이유를 묻는다.
 - 4지선다의 오답 보기도 그럴듯하게 만든다. 정답 위치는 골고루 섞는다.
-- 문제·보기·해설은 한국어. 강의가 영어면 핵심 용어는 영어를 괄호로 병기한다.
+- 문제·보기·해설은 ${TR_LANGS[trLang].name}. 강의가 영어면 핵심 용어는 영어를 괄호로 병기한다.
 
 각 항목:
   type: "mc" 또는 "short"
-  q: 문제 (한국어)
+  q: 문제 (${TR_LANGS[trLang].name})
   choices: mc면 보기 4개 배열, short면 빈 배열
   answer: mc면 정답 보기의 0부터 시작하는 번호(숫자), short면 모범 답안(문자열)
   explain: 왜 그 답인지 2~3문장 해설
@@ -2239,13 +2400,13 @@ async function makeVocab(){
 
 각 항목:
 - en: 영어 단어/표현 (원형)
-- ko: 한국어 뜻만. 쉼표로 2~4개. **괄호·설명·부연을 절대 넣지 마라.** (예: "거대한, 막대한, 엄청난")
-- note: 뉘앙스나 헷갈리는 점 한 줄. 없으면 빈 문자열. (예: "huge보다 격식 있는 말투")
+- ko: ${TR_LANGS[trLang].name} 뜻만. 쉼표로 2~4개. **괄호·설명·부연을 절대 넣지 마라.** (예: "거대한, 막대한, 엄청난")
+- note: 뉘앙스나 헷갈리는 점 한 줄 (${TR_LANGS[trLang].name}로). 없으면 빈 문자열. (예: "huge보다 격식 있는 말투")
 - pos: Noun / Verb / Adjective / Adverb / Pronoun / Preposition / Conjunction / Phrase / Idiom / Term 중 하나 (반드시 이 중 하나)
 - ipa: 미국식 발음기호(IPA). 슬래시(/) 없이 기호만. 확실하지 않으면 빈 문자열로 둔다.
 - lv: "중3" "고1" "고2" "수능+" "전문용어" 중 하나
 - ex: 원문에 나온 영어 문장(또는 그 일부). 25단어 이내로 짧게.
-- exko: ex의 한국어 해석
+- exko: ex의 ${TR_LANGS[trLang].name} 해석
 - active: 학습 대상이면 true, 너무 기초라 뺄 만하면 false
 
 JSON으로만 답한다: {"words":[{"en":"","ko":"","note":"","pos":"","ipa":"","lv":"","ex":"","exko":"","active":true}]}`;
