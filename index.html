@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>강의 노트</title>
+<title>Ryan's Note</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
 <script>window.onerror=function(m,s,l){console.error('ERR:',m,'L'+l);return true;};</script>
 <style>
@@ -305,7 +305,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 <body>
 <div class="wrap">
   <div class="hdr">
-    <div class="title" data-i18n="headerTitle">강의 노트</div>
+    <div class="title" data-i18n="headerTitle">Ryan's Note</div>
     <div class="sub" data-i18n="headerSub">녹음 · 받아쓰기 · 요약 · 질문 · 단어장</div>
   </div>
   <nav class="nav">
@@ -681,22 +681,18 @@ function paintSrc(){
     b.classList.toggle('dis',needsDisp&&!CAN_DISP);
     b.classList.toggle('on',b.dataset.v===srcMode);
   });
+  const L=UI_STRINGS[trLang]||UI_STRINGS.ko;
   if(!CAN_DISP){
-    $('srcTip').innerHTML=IS_IOS
-      ? '📱 <b>아이폰·아이패드에서는 "컴퓨터 소리"를 쓸 수 없습니다.</b> 애플이 웹 브라우저에 다른 앱의 소리를 열어주지 않기 때문이며, 크롬을 깔아도 동일합니다.<br><br>'+
-        '<b>온라인 수업(줌)을 녹음하려면:</b><br>'+
-        '① 줌을 <b>스피커로</b> 틀고(이어폰 빼기), 이 페이지를 <b>화면에 계속 띄운 채</b> 마이크로 녹음<br>'+
-        '② 또는 <b>다른 기기</b>(노트북·태블릿·예비폰)에서 이 앱을 열고 스피커 소리를 녹음 — 이쪽이 훨씬 안정적입니다<br>'+
-        '③ 또는 줌 녹화의 <b>자막 파일(.vtt)</b>을 나중에 「텍스트」 탭에 붙여넣기'
-      : '이 브라우저는 화면·탭 소리 캡처를 지원하지 않습니다. 마이크로만 녹음합니다.';
+    $('srcTip').innerHTML=IS_IOS?L.srcTipIOS:L.srcTipNoDisp;
     return;
   }
-  $('srcTip').innerHTML={
-    mic:'교실에서 직접 듣는 강의를 녹음합니다.',
-    disp:'화면 공유 창이 뜨면 <b>강의가 재생되는 탭</b>을 고르고 <b>"탭 오디오도 공유"를 반드시 체크</b>하세요. 컴퓨터 원음을 그대로 받아 인식률이 가장 높습니다.',
-    both:'컴퓨터 소리 + 내 마이크를 함께 녹음합니다.'}[srcMode];
+  $('srcTip').innerHTML={mic:L.srcTipMic,disp:L.srcTipDisp,both:L.srcTipBoth}[srcMode];
 }
-function paintAmp(){$('ampTxt').innerText=AMP[ampLv].name+' (최대 ×'+AMP[ampLv].max+')';}
+function paintAmp(){
+  const L=UI_STRINGS[trLang]||UI_STRINGS.ko;
+  const nm=L['ampN'+ampLv]||AMP[ampLv].name;
+  $('ampTxt').innerText=(L.ampMaxFmt||'{name} (최대 ×{max})').replace('{name}',nm).replace('{max}',AMP[ampLv].max);
+}
 function showKeySaved(){if(SRV.on)return;$('keyCard').style.display='none';$('keyDone').style.display='block';}
 function editKey(){if(SRV.on)return;$('keyCard').style.display='block';$('keyDone').style.display='none';$('apiKey').focus();}
 const key=()=>{const e=$('apiKey');return e?(e.value||'').trim():'';};
@@ -751,7 +747,8 @@ function paintAuthUI(){
     const need=SRV.pass&&!appPass();
     $('passWrap').style.display=need?'block':'none';
     $('whoBox').style.display=(SRV.pass&&appPass())?'block':'none';
-    $('whoTxt').innerText=SRV.who?('✅ '+SRV.who+' 님으로 사용 중'):'✅ 코드 확인됨';
+    {const L=UI_STRINGS[trLang]||UI_STRINGS.ko;
+     $('whoTxt').innerText=SRV.who?(L.whoUsing||'✅ {name} 님으로 사용 중').replace('{name}',SRV.who):(L.whoOk||'✅ 코드 확인됨');}
   }else{
     $('srvCard').style.display='none';
     if(key()){$('keyCard').style.display='none';$('keyDone').style.display='block';}
@@ -1199,10 +1196,11 @@ async function recovery(){
   let all=[];try{all=await getAll();}catch(e){return;}
   const p=all.filter(c=>(c.status==='pending'||c.status==='failed')&&c.blob);
   if(!p.length)return;
-  $('recovery').innerHTML=`<div class="banner">처리되지 못한 오디오 구간 ${p.length}개가 남아 있습니다. 원본은 안전합니다.
+  const L=UI_STRINGS[trLang]||UI_STRINGS.ko;
+  $('recovery').innerHTML=`<div class="banner">${(L.recBanner||'처리되지 못한 오디오 구간 {n}개가 남아 있습니다. 원본은 안전합니다.').replace('{n}',p.length)}
     <div class="row" style="margin-top:10px;">
-      <button class="btn btn-blue btn-sm" onclick="retryAll()">🔁 재시도</button>
-      <button class="btn btn-gray btn-sm" onclick="dropAll()">🗑️ 지우기</button></div></div>`;
+      <button class="btn btn-blue btn-sm" onclick="retryAll()">${L.recRetry||'🔁 재시도'}</button>
+      <button class="btn btn-gray btn-sm" onclick="dropAll()">${L.recDrop||'🗑️ 지우기'}</button></div></div>`;
 }
 async function retryAll(){
   if(needKey())return;
@@ -1406,7 +1404,7 @@ function setTrLang(v){
    ═══════════════════════════════════════════════════════════════════════ */
 const UI_STRINGS={
   ko:{
-    headerTitle:'강의 노트',headerSub:'녹음 · 받아쓰기 · 요약 · 질문 · 단어장',
+    headerTitle:"Ryan's Note",headerSub:'녹음 · 받아쓰기 · 요약 · 질문 · 단어장',
     tabRec:'🎙 녹음',tabTxt:'📝 텍스트',tabStd:'📚 학습',tabArc:'🗂 보관함',
     keyLabel:'OpenAI API 키 <span style="font-weight:600;color:#bbb;">— 이 브라우저에만 저장됩니다</span>',
     keyTip:'키가 없으면 <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
@@ -1455,10 +1453,23 @@ const UI_STRINGS={
     voc80:'넉넉하게 (최대 80개)',voc50:'보통 (최대 50개)',voc28:'핵심만 (최대 28개)',
     vocBtn:'📚 단어장 만들기',
     vocTip:'강의 분량이 적으면 요청한 개수보다 적게 나올 수 있습니다. 그때는 몇 개가 나왔는지 알려드립니다.',
-    arcSearchPh:'🔍 제목으로 찾기',arcSortDate:'🕒 날짜순',arcSortName:'🔤 이름순',arcSortSize:'📦 용량순'
+    arcSearchPh:'🔍 제목으로 찾기',arcSortDate:'🕒 날짜순',arcSortName:'🔤 이름순',arcSortSize:'📦 용량순',
+    srcTipMic:'교실에서 직접 듣는 강의를 녹음합니다.',
+    srcTipDisp:'화면 공유 창이 뜨면 <b>강의가 재생되는 탭</b>을 고르고 <b>"탭 오디오도 공유"를 반드시 체크</b>하세요. 컴퓨터 원음을 그대로 받아 인식률이 가장 높습니다.',
+    srcTipBoth:'컴퓨터 소리 + 내 마이크를 함께 녹음합니다.',
+    srcTipIOS:'📱 <b>아이폰·아이패드에서는 "컴퓨터 소리"를 쓸 수 없습니다.</b> 애플이 웹 브라우저에 다른 앱의 소리를 열어주지 않기 때문이며, 크롬을 깔아도 동일합니다.<br><br>'+
+      '<b>온라인 수업(줌)을 녹음하려면:</b><br>'+
+      '① 줌을 <b>스피커로</b> 틀고(이어폰 빼기), 이 페이지를 <b>화면에 계속 띄운 채</b> 마이크로 녹음<br>'+
+      '② 또는 <b>다른 기기</b>(노트북·태블릿·예비폰)에서 이 앱을 열고 스피커 소리를 녹음 — 이쪽이 훨씬 안정적입니다<br>'+
+      '③ 또는 줌 녹화의 <b>자막 파일(.vtt)</b>을 나중에 「텍스트」 탭에 붙여넣기',
+    srcTipNoDisp:'이 브라우저는 화면·탭 소리 캡처를 지원하지 않습니다. 마이크로만 녹음합니다.',
+    ampN1:'보통',ampN2:'강하게',ampN3:'아주 강하게',ampN4:'최대',ampMaxFmt:'{name} (최대 ×{max})',
+    whoUsing:'✅ {name} 님으로 사용 중',whoOk:'✅ 코드 확인됨',
+    recBanner:'처리되지 못한 오디오 구간 {n}개가 남아 있습니다. 원본은 안전합니다.',
+    recRetry:'🔁 재시도',recDrop:'🗑️ 지우기'
   },
   ja:{
-    headerTitle:'講義ノート',headerSub:'録音・書き起こし・要約・質問・単語帳',
+    headerTitle:"Ryan's Note",headerSub:'録音・書き起こし・要約・質問・単語帳',
     tabRec:'🎙 録音',tabTxt:'📝 テキスト',tabStd:'📚 学習',tabArc:'🗂 保管庫',
     keyLabel:'OpenAI API キー <span style="font-weight:600;color:#bbb;">— このブラウザにのみ保存されます</span>',
     keyTip:'キーがない場合は <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
@@ -1507,10 +1518,23 @@ const UI_STRINGS={
     voc80:'たっぷり（最大80個）',voc50:'普通（最大50個）',voc28:'核心だけ（最大28個）',
     vocBtn:'📚 単語帳を作る',
     vocTip:'講義の量が少ないと、要求した数より少なく出ることがあります。その場合は何個出たかお知らせします。',
-    arcSearchPh:'🔍 タイトルで検索',arcSortDate:'🕒 日付順',arcSortName:'🔤 名前順',arcSortSize:'📦 容量順'
+    arcSearchPh:'🔍 タイトルで検索',arcSortDate:'🕒 日付順',arcSortName:'🔤 名前順',arcSortSize:'📦 容量順',
+    srcTipMic:'教室で直接聞く講義を録音します。',
+    srcTipDisp:'画面共有ウィンドウが表示されたら<b>講義が再生されているタブ</b>を選び、<b>「タブの音声も共有」を必ずチェック</b>してください。PCの原音をそのまま取得するため認識率が最も高くなります。',
+    srcTipBoth:'PCの音声 + マイクを同時に録音します。',
+    srcTipIOS:'📱 <b>iPhone・iPadでは「PCの音声」を使用できません。</b>Appleがウェブブラウザに他アプリの音声アクセスを許可していないためで、Chromeを入れても同じです。<br><br>'+
+      '<b>オンライン授業（Zoomなど）を録音するには：</b><br>'+
+      '① Zoomを<b>スピーカーで</b>再生し（イヤホンを外す）、このページを<b>画面に表示したまま</b>マイクで録音<br>'+
+      '② または<b>別の端末</b>（ノートPC・タブレット・予備のスマホ）でこのアプリを開き、スピーカーの音を録音 — こちらの方がずっと安定します<br>'+
+      '③ またはZoom録画の<b>字幕ファイル（.vtt）</b>を後で「テキスト」タブに貼り付け',
+    srcTipNoDisp:'このブラウザは画面・タブ音声のキャプチャに対応していません。マイクのみで録音します。',
+    ampN1:'普通',ampN2:'強め',ampN3:'かなり強め',ampN4:'最大',ampMaxFmt:'{name}（最大 ×{max}）',
+    whoUsing:'✅ {name} さんとして利用中',whoOk:'✅ コード確認済み',
+    recBanner:'未処理の音声区間が{n}個残っています。元データは安全です。',
+    recRetry:'🔁 再試行',recDrop:'🗑️ 削除'
   },
   zh:{
-    headerTitle:'讲课笔记',headerSub:'录音・转录・总结・问答・单词表',
+    headerTitle:"Ryan's Note",headerSub:'录音・转录・总结・问答・单词表',
     tabRec:'🎙 录音',tabTxt:'📝 文本',tabStd:'📚 学习',tabArc:'🗂 存档',
     keyLabel:'OpenAI API 密钥 <span style="font-weight:600;color:#bbb;">— 仅保存在此浏览器中</span>',
     keyTip:'没有密钥？去 <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
@@ -1559,10 +1583,23 @@ const UI_STRINGS={
     voc80:'充足（最多80个）',voc50:'普通（最多50个）',voc28:'仅核心（最多28个）',
     vocBtn:'📚 生成单词表',
     vocTip:'如果课程内容较少，可能会少于请求的数量。届时会告知实际生成了多少个。',
-    arcSearchPh:'🔍 按标题搜索',arcSortDate:'🕒 按日期',arcSortName:'🔤 按名称',arcSortSize:'📦 按大小'
+    arcSearchPh:'🔍 按标题搜索',arcSortDate:'🕒 按日期',arcSortName:'🔤 按名称',arcSortSize:'📦 按大小',
+    srcTipMic:'录制在教室里直接听到的课程。',
+    srcTipDisp:'弹出屏幕共享窗口后，选择<b>正在播放课程的标签页</b>，并务必<b>勾选"同时共享标签页音频"</b>。直接获取电脑原声，识别率最高。',
+    srcTipBoth:'同时录制电脑声音 + 我的麦克风。',
+    srcTipIOS:'📱 <b>iPhone・iPad 无法使用"电脑声音"。</b>因为苹果不允许网页浏览器访问其他应用的声音，即使安装 Chrome 也一样。<br><br>'+
+      '<b>要录制线上课程（Zoom等）：</b><br>'+
+      '① 把 Zoom 切换成<b>扬声器播放</b>（取下耳机），让此页面<b>一直显示在屏幕上</b>并用麦克风录音<br>'+
+      '② 或者在<b>另一台设备</b>（笔记本电脑・平板・备用手机）上打开本应用，录制扬声器声音 — 这种方式更稳定<br>'+
+      '③ 或者把 Zoom 录制生成的<b>字幕文件（.vtt）</b>之后粘贴到"文本"标签页',
+    srcTipNoDisp:'此浏览器不支持捕获屏幕・标签页声音，仅能使用麦克风录音。',
+    ampN1:'普通',ampN2:'较强',ampN3:'很强',ampN4:'最大',ampMaxFmt:'{name}（最大 ×{max}）',
+    whoUsing:'✅ 正在以 {name} 身份使用',whoOk:'✅ 代码已确认',
+    recBanner:'还有 {n} 个未处理的音频片段。原始录音是安全的。',
+    recRetry:'🔁 重试',recDrop:'🗑️ 删除'
   },
   es:{
-    headerTitle:'Notas de clase',headerSub:'Grabación · Transcripción · Resumen · Preguntas · Vocabulario',
+    headerTitle:"Ryan's Note",headerSub:'Grabación · Transcripción · Resumen · Preguntas · Vocabulario',
     tabRec:'🎙 Grabar',tabTxt:'📝 Texto',tabStd:'📚 Estudio',tabArc:'🗂 Archivo',
     keyLabel:'Clave de API de OpenAI <span style="font-weight:600;color:#bbb;">— solo se guarda en este navegador</span>',
     keyTip:'¿No tienes una clave? <a class="link" href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>',
@@ -1611,7 +1648,20 @@ const UI_STRINGS={
     voc80:'Abundante (máx. 80)',voc50:'Normal (máx. 50)',voc28:'Solo lo esencial (máx. 28)',
     vocBtn:'📚 Generar vocabulario',
     vocTip:'Si la clase es corta, es posible que salgan menos palabras de las solicitadas. En ese caso, se te informará cuántas se generaron.',
-    arcSearchPh:'🔍 Buscar por título',arcSortDate:'🕒 Por fecha',arcSortName:'🔤 Por nombre',arcSortSize:'📦 Por tamaño'
+    arcSearchPh:'🔍 Buscar por título',arcSortDate:'🕒 Por fecha',arcSortName:'🔤 Por nombre',arcSortSize:'📦 Por tamaño',
+    srcTipMic:'Graba la clase que escuchas directamente en el aula.',
+    srcTipDisp:'Cuando aparezca la ventana de compartir pantalla, elige <b>la pestaña donde se reproduce la clase</b> y asegúrate de <b>marcar "Compartir también el audio de la pestaña"</b>. Se capta el sonido original del PC, por lo que la precisión es la más alta.',
+    srcTipBoth:'Graba el sonido del PC + tu micrófono al mismo tiempo.',
+    srcTipIOS:'📱 <b>En iPhone/iPad no se puede usar "Sonido del PC".</b> Esto se debe a que Apple no permite que los navegadores web accedan al audio de otras apps, y ocurre igual aunque instales Chrome.<br><br>'+
+      '<b>Para grabar una clase en línea (Zoom, etc.):</b><br>'+
+      '① Pon Zoom en <b>altavoz</b> (sin audífonos) y graba con el micrófono mientras mantienes <b>esta página visible en pantalla</b><br>'+
+      '② O abre esta app en <b>otro dispositivo</b> (laptop, tablet, teléfono de repuesto) y graba el sonido del altavoz — esta opción es mucho más estable<br>'+
+      '③ O pega más tarde el <b>archivo de subtítulos (.vtt)</b> de la grabación de Zoom en la pestaña "Texto"',
+    srcTipNoDisp:'Este navegador no admite capturar el sonido de la pantalla o pestaña. Solo se grabará con el micrófono.',
+    ampN1:'Normal',ampN2:'Fuerte',ampN3:'Muy fuerte',ampN4:'Máximo',ampMaxFmt:'{name} (máx. ×{max})',
+    whoUsing:'✅ Usando como {name}',whoOk:'✅ Código verificado',
+    recBanner:'Quedan {n} segmentos de audio sin procesar. El original está a salvo.',
+    recRetry:'🔁 Reintentar',recDrop:'🗑️ Eliminar'
   }
 };
 function applyUILang(lang){
@@ -1630,6 +1680,10 @@ function applyUILang(lang){
   });
   document.documentElement.lang=lang==='ko'?'ko':lang;
   if(L.headerTitle)document.title=L.headerTitle;
+  if(typeof paintSrc==='function')paintSrc();
+  if(typeof paintAmp==='function')paintAmp();
+  if(typeof paintAuthUI==='function'&&SRV.on)paintAuthUI();
+  if(typeof recovery==='function')recovery();
 }
 function trPrompt(langName){
   return `강의 녹취의 한 조각이다. 자연스러운 ${langName}로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 ${langName}면 그대로 출력한다. 전문용어는 ${langName} 뒤 괄호에 원어(영어)를 남긴다.`;
