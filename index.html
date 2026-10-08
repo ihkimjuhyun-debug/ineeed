@@ -255,6 +255,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .qa{margin-bottom:14px;}
 .qa .q{background:var(--blue);color:#fff;border-radius:14px 14px 4px 14px;padding:11px 14px;font-size:14px;font-weight:700;
   margin-left:auto;max-width:88%;width:fit-content;line-height:1.5;}
+.qa .q .qimg{display:block;max-width:220px;max-height:220px;border-radius:10px;margin-bottom:8px;}
 .qa .a{background:#fff;border:1px solid #EAEAEA;border-radius:14px 14px 14px 4px;padding:14px 16px;margin-top:8px;
   font-size:14.5px;line-height:1.75;}
 .qa .a p{margin:6px 0;}.qa .a ul{padding-left:19px;margin:6px 0;}
@@ -476,8 +477,20 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
         <div id="qaList"></div>
         <div class="card" style="position:sticky;bottom:12px;padding:12px;">
           <div id="fupBox" style="display:none;"></div>
+          <div id="qImgPreview" style="display:none;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="position:relative;flex:0 0 auto;">
+              <img id="qImgThumb" style="width:56px;height:56px;object-fit:cover;border-radius:10px;border:1.5px solid #E5E5EA;display:block;">
+              <button type="button" onclick="clearQImage()" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:900;cursor:pointer;line-height:1;padding:0;">✕</button>
+            </div>
+            <span class="tip" style="margin:0;" data-i18n="qImgAttached">사진 첨부됨 — 질문과 함께 전송됩니다</span>
+          </div>
           <textarea id="qInput" class="inp" style="min-height:60px;" data-i18n-ph="qInputPh" placeholder="강의 내용에 대해 무엇이든 물어보세요 (Enter로 전송, Shift+Enter 줄바꿈)&#10;예) 왜 최신판 교재를 써야 한다고 했나요?"></textarea>
-          <button class="btn btn-blue btn-sm" style="margin-top:8px;" id="askBtn" data-i18n="askBtn" onclick="ask()">질문하기</button>
+          <input type="file" id="qImgFile" accept="image/*" style="display:none;" onchange="pickQImage(this)">
+          <div class="row" style="margin-top:8px;">
+            <button class="btn btn-out btn-sm" type="button" data-i18n="qImgBtn" onclick="document.getElementById('qImgFile').click()">📷 사진 첨부</button>
+            <button class="btn btn-blue btn-sm" id="askBtn" data-i18n="askBtn" onclick="ask()">질문하기</button>
+          </div>
+          <div class="tip c" data-i18n="qImgTip">문제나 슬라이드를 캡처해서 Ctrl+V(붙여넣기)로 바로 넣을 수도 있어요.</div>
         </div>
       </div>
 
@@ -596,6 +609,7 @@ function noSleepOff(){
   }catch(e){}
 }
 let srcMode='mic',ampLv=2,stdPane='sum',vocHidden=false;
+let qImage=null;                        // 질문하기에 첨부된 스크린샷(data URL) — 전송 즉시 비움, 저장 안 함
 let chunkSec=20;                        // 받아쓰기 간격(초) — 10 / 20 / 30
 /* 기기·브라우저 능력 감지
    iOS(아이폰·아이패드)는 Safari 엔진만 쓸 수 있고, 애플이 웹에 시스템 오디오를 열어주지 않는다.
@@ -656,6 +670,7 @@ window.addEventListener('load',async()=>{
     if(e.isComposing||e.keyCode===229)return;   // 한글 조합 중에는 제출하지 않는다
     e.preventDefault();ask();
   });
+  $('qInput').addEventListener('paste',pasteQImage);
   document.addEventListener('click',e=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
@@ -1466,7 +1481,8 @@ const UI_STRINGS={
     ampN1:'보통',ampN2:'강하게',ampN3:'아주 강하게',ampN4:'최대',ampMaxFmt:'{name} (최대 ×{max})',
     whoUsing:'✅ {name} 님으로 사용 중',whoOk:'✅ 코드 확인됨',
     recBanner:'처리되지 못한 오디오 구간 {n}개가 남아 있습니다. 원본은 안전합니다.',
-    recRetry:'🔁 재시도',recDrop:'🗑️ 지우기'
+    recRetry:'🔁 재시도',recDrop:'🗑️ 지우기',
+    qImgBtn:'📷 사진 첨부',qImgTip:'문제나 슬라이드를 캡처해서 Ctrl+V(붙여넣기)로 바로 넣을 수도 있어요.',qImgAttached:'사진 첨부됨 — 질문과 함께 전송됩니다'
   },
   ja:{
     headerTitle:"Ryan's Note",headerSub:'録音・書き起こし・要約・質問・単語帳',
@@ -1531,7 +1547,8 @@ const UI_STRINGS={
     ampN1:'普通',ampN2:'強め',ampN3:'かなり強め',ampN4:'最大',ampMaxFmt:'{name}（最大 ×{max}）',
     whoUsing:'✅ {name} さんとして利用中',whoOk:'✅ コード確認済み',
     recBanner:'未処理の音声区間が{n}個残っています。元データは安全です。',
-    recRetry:'🔁 再試行',recDrop:'🗑️ 削除'
+    recRetry:'🔁 再試行',recDrop:'🗑️ 削除',
+    qImgBtn:'📷 写真を添付',qImgTip:'問題やスライドをキャプチャしてCtrl+V（貼り付け）でそのまま入れることもできます。',qImgAttached:'写真が添付されました — 質問と一緒に送信されます'
   },
   zh:{
     headerTitle:"Ryan's Note",headerSub:'录音・转录・总结・问答・单词表',
@@ -1596,7 +1613,8 @@ const UI_STRINGS={
     ampN1:'普通',ampN2:'较强',ampN3:'很强',ampN4:'最大',ampMaxFmt:'{name}（最大 ×{max}）',
     whoUsing:'✅ 正在以 {name} 身份使用',whoOk:'✅ 代码已确认',
     recBanner:'还有 {n} 个未处理的音频片段。原始录音是安全的。',
-    recRetry:'🔁 重试',recDrop:'🗑️ 删除'
+    recRetry:'🔁 重试',recDrop:'🗑️ 删除',
+    qImgBtn:'📷 添加照片',qImgTip:'也可以截取题目或幻灯片，直接用 Ctrl+V（粘贴）放进来。',qImgAttached:'已添加照片 — 会和问题一起发送'
   },
   es:{
     headerTitle:"Ryan's Note",headerSub:'Grabación · Transcripción · Resumen · Preguntas · Vocabulario',
@@ -1661,7 +1679,8 @@ const UI_STRINGS={
     ampN1:'Normal',ampN2:'Fuerte',ampN3:'Muy fuerte',ampN4:'Máximo',ampMaxFmt:'{name} (máx. ×{max})',
     whoUsing:'✅ Usando como {name}',whoOk:'✅ Código verificado',
     recBanner:'Quedan {n} segmentos de audio sin procesar. El original está a salvo.',
-    recRetry:'🔁 Reintentar',recDrop:'🗑️ Eliminar'
+    recRetry:'🔁 Reintentar',recDrop:'🗑️ Eliminar',
+    qImgBtn:'📷 Adjuntar foto',qImgTip:'También puedes capturar un problema o diapositiva y pegarlo directamente con Ctrl+V.',qImgAttached:'Foto adjunta — se enviará junto con la pregunta'
   }
 };
 function applyUILang(lang){
@@ -1989,16 +2008,65 @@ function drawFollowups(){
     f.map(q=>`<button class="fchip" data-q="${esc(q)}" title="${esc(q)}" onclick="askThis(this)">${esc(q)}</button>`).join('')}</div>`;
   const r=$('fups');if(r)r.scrollLeft=0;
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   질문하기 — 스크린샷 첨부 (붙여넣기 또는 파일 선택)
+   큰 원본을 그대로 보내지 않도록 캔버스로 축소·압축한 뒤 data URL로 들고 있다가
+   질문 전송 시 한 번만 쓰고 비운다. 세션에는 저장하지 않는다(저장공간 보호).
+   ═══════════════════════════════════════════════════════════════════════ */
+function downscaleImage(file,maxEdge,quality){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.naturalWidth,h=img.naturalHeight;
+      const scale=Math.min(1,maxEdge/Math.max(w,h||1));
+      w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      resolve(cv.toDataURL('image/jpeg',quality||0.82));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('이미지를 읽을 수 없습니다.'));};
+    img.src=url;
+  });
+}
+function setQImage(dataUrl){
+  qImage=dataUrl;
+  const t=$('qImgThumb');if(t)t.src=dataUrl;
+  const p=$('qImgPreview');if(p)p.style.display='flex';
+}
+function clearQImage(){
+  qImage=null;
+  const p=$('qImgPreview');if(p)p.style.display='none';
+  const f=$('qImgFile');if(f)f.value='';
+}
+async function pickQImage(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  if(!/^image\//.test(f.type))return;
+  try{setQImage(await downscaleImage(f,1600,.82));}catch(e){alert('이미지를 불러오지 못했습니다: '+e.message);}
+}
+async function pasteQImage(e){
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  for(let i=0;i<items.length;i++){
+    if(items[i].type&&items[i].type.indexOf('image/')===0){
+      e.preventDefault();
+      const f=items[i].getAsFile();if(!f)return;
+      try{setQImage(await downscaleImage(f,1600,.82));}catch(err){}
+      return;
+    }
+  }
+}
 async function ask(forceQ,baseIdx){
   if(!session)return;
   const q=String(forceQ!=null?forceQ:($('qInput').value||'')).trim();
-  if(!q)return;
+  const img=(forceQ==null)?qImage:null;           // 첨부된 스크린샷(있으면) — 이번 질문에만 쓰고 비운다
+  if(!q&&!img)return;
   if(needKey())return;
-  if(forceQ==null)$('qInput').value='';
+  if(forceQ==null){$('qInput').value='';clearQImage();}
   const b=$('askBtn');b.disabled=true;
   const id='qa-'+Date.now();
   const box=document.createElement('div');box.className='qa';box.id=id;
-  box.innerHTML=`<div class="q">${esc(q)}</div><div class="a"><span class="thinking">강의 내용을 찾아보는 중...</span></div>`;
+  box.innerHTML=`<div class="q">${img?`<img src="${img}" class="qimg">`:''}${esc(q)}</div><div class="a"><span class="thinking">강의 내용을 찾아보는 중...</span></div>`;
   $('qaList').appendChild(box);box.scrollIntoView({behavior:'smooth',block:'center'});
   try{
     /* ── 질문의 성격부터 판정한다 ─────────────────────────────
@@ -2042,6 +2110,17 @@ async function ask(forceQ,baseIdx){
 - 학생이 번호만("1,2,3,4?") 물었다면 [직전 질문]에 있던 보기를 가리키는 것이다.
 `:'';
 
+    const multiRule=`
+★★ 여러 후보를 나열하고 그중 어느 것이 맞는지/해당하는지 묻는 질문이면(번호가 없어도 된다. 예: "A. ... B. ... C. ... 이 세 가지 중 해당되는 것은?"):
+- **설명보다 먼저**, 후보를 나열된 순서대로 짧게 요약하며 각각 판정을 매긴 목록을 맨 위에 둔다. 형식:
+  1. (후보 요약) — O
+  2. (후보 요약) — X
+  3. (후보 요약) — O
+- 판정은 O(해당/맞음) 또는 X(비해당/틀림) 둘 중 하나로 **모든 후보에 대해 빠짐없이** 매긴다. 애매해도 가장 가능성 높은 쪽으로 판정하고, 확실치 않으면 그 항목 설명에서만 단서를 붙인다.
+- 이 판정 목록을 먼저 낸 다음에만 각 항목별 근거를 짧게 설명한다. 판정 없이 설명부터 시작하지 마라.
+- 강의에 직접 언급되지 않은 후보도 "다루지 않았음"으로 끝내지 말고, 일반 지식으로 O/X를 판단해 분명히 답한다.
+`;
+
     const repeatRule=deepen?`
 ★ 학생이 같은 주제를 다시 묻고 있다 — 더 짧게가 아니라 **더 자세히** 답하라.
 - 앞 답변을 요약해 되풀이하지 말고, 그때 생략했던 세부·배경·예시·용어 풀이를 채워 넣어라.
@@ -2067,18 +2146,22 @@ async function ask(forceQ,baseIdx){
 - 원문에 답이 없으면 **거기서 끝내지 마라.** "이 강의에서는 직접 다루지 않았습니다"라고 한 줄 밝힌 뒤, **일반 지식으로 아는 만큼 이어서 답한다.** 어디까지가 강의 내용이고 어디부터가 일반 지식인지만 구분해주면 된다.
 - 위치 표시는 반드시 [강의 원문]에 실제로 있는 표시만 쓴다.
 - 학생이 영어에 약하므로 어려운 영어 표현은 뜻을 함께 적어준다.
-${choiceRule}${repeatRule}
+- 학생이 사진(스크린샷)을 함께 보냈다면, 그 사진 속 문제·슬라이드·표 등을 직접 읽고 답한다. 사진 내용이 강의 원문과 연결되면 위치 표시도 같이 붙인다.
+${choiceRule}${multiRule}${repeatRule}
 [앞선 질문들]
 ${hist}
 ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
 
     const userMsg=`[강의 원문]\n${ctx}\n\n`
       +((isShort||deepen)&&last?`[직전 질문]\n${last.q}\n\n[직전 답변 요약]\n${String(last.a||'').slice(0,700)}\n\n`:'')
-      +`[이번 질문]\n${q}`;
+      +`[이번 질문]\n${q||'(텍스트 없이 사진만 첨부함 — 사진을 보고 답해줘)'}`;
+    const userContent=img
+      ?[{type:'text',text:userMsg},{type:'image_url',image_url:{url:img}}]
+      :userMsg;
     let a=null,lastErr=null;
     for(let t=0;t<2;t++){                 // 인터넷이 잠깐 끊긴 정도면 스스로 한 번 더 시도
       try{
-        a=await llm([{role:'system',content:sys},{role:'user',content:userMsg}],
+        a=await llm([{role:'system',content:sys},{role:'user',content:userContent}],
           {temp:.2,maxTokens:isChoice||deepen?1800:1200});
         break;
       }catch(err){
