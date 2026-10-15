@@ -1482,7 +1482,14 @@ const UI_STRINGS={
     whoUsing:'✅ {name} 님으로 사용 중',whoOk:'✅ 코드 확인됨',
     recBanner:'처리되지 못한 오디오 구간 {n}개가 남아 있습니다. 원본은 안전합니다.',
     recRetry:'🔁 재시도',recDrop:'🗑️ 지우기',
-    qImgBtn:'📷 사진 첨부',qImgTip:'문제나 슬라이드를 캡처해서 Ctrl+V(붙여넣기)로 바로 넣을 수도 있어요.',qImgAttached:'사진 첨부됨 — 질문과 함께 전송됩니다'
+    qImgBtn:'📷 사진 첨부',qImgTip:'문제나 슬라이드를 캡처해서 Ctrl+V(붙여넣기)로 바로 넣을 수도 있어요.',qImgAttached:'사진 첨부됨 — 질문과 함께 전송됩니다',
+    fupTitle:'이어서 물어보기',fupWide:'다른 주제로',fupWideLoading:'다른 주제 찾는 중…',fupLoading:'질문 만드는 중…',
+    deepDetail:'더 자세히',deepEasy:'쉽게',deepExample:'예시',deepWhy:'왜?',deepGen:'✨ 이 답변에서 질문 뽑기',
+    deepDetailQ:'방금 답변을 더 자세히, 생략된 배경과 세부까지 설명해줘',
+    deepEasyQ:'방금 답변을 더 쉬운 말로 다시 설명해줘',
+    deepExampleQ:'방금 설명을 이해할 수 있는 구체적인 예시를 들어줘',
+    deepWhyQ:'방금 답변에서 그렇게 되는 이유를 한 단계 더 파고들어 설명해줘',
+    starOn:'★ 별표됨',starOff:'☆ 별표',starRemove:'★ 별표 해제',pinHeaderFmt:'⭐ 별표한 답변 {n}개 · 최근에 별표한 순서'
   },
   ja:{
     headerTitle:"Ryan's Note",headerSub:'録音・書き起こし・要約・質問・単語帳',
@@ -1548,7 +1555,14 @@ const UI_STRINGS={
     whoUsing:'✅ {name} さんとして利用中',whoOk:'✅ コード確認済み',
     recBanner:'未処理の音声区間が{n}個残っています。元データは安全です。',
     recRetry:'🔁 再試行',recDrop:'🗑️ 削除',
-    qImgBtn:'📷 写真を添付',qImgTip:'問題やスライドをキャプチャしてCtrl+V（貼り付け）でそのまま入れることもできます。',qImgAttached:'写真が添付されました — 質問と一緒に送信されます'
+    qImgBtn:'📷 写真を添付',qImgTip:'問題やスライドをキャプチャしてCtrl+V（貼り付け）でそのまま入れることもできます。',qImgAttached:'写真が添付されました — 質問と一緒に送信されます',
+    fupTitle:'続けて質問する',fupWide:'別の話題へ',fupWideLoading:'別の話題を探しています…',fupLoading:'質問を作成中…',
+    deepDetail:'もっと詳しく',deepEasy:'簡単に',deepExample:'例を',deepWhy:'なぜ？',deepGen:'✨ この回答から質問を作る',
+    deepDetailQ:'今の答えをもっと詳しく、省略された背景や詳細まで説明して',
+    deepEasyQ:'今の答えをもっと分かりやすい言葉で説明して',
+    deepExampleQ:'今の説明が理解できる具体的な例を挙げて',
+    deepWhyQ:'今の答えについて、そうなる理由を一段深く掘り下げて説明して',
+    starOn:'★ ブックマーク済み',starOff:'☆ ブックマーク',starRemove:'★ ブックマーク解除',pinHeaderFmt:'⭐ ブックマークした回答 {n}件 · 最近ブックマークした順'
   },
   zh:{
     headerTitle:"Ryan's Note",headerSub:'录音・转录・总结・问答・单词表',
@@ -1614,7 +1628,14 @@ const UI_STRINGS={
     whoUsing:'✅ 正在以 {name} 身份使用',whoOk:'✅ 代码已确认',
     recBanner:'还有 {n} 个未处理的音频片段。原始录音是安全的。',
     recRetry:'🔁 重试',recDrop:'🗑️ 删除',
-    qImgBtn:'📷 添加照片',qImgTip:'也可以截取题目或幻灯片，直接用 Ctrl+V（粘贴）放进来。',qImgAttached:'已添加照片 — 会和问题一起发送'
+    qImgBtn:'📷 添加照片',qImgTip:'也可以截取题目或幻灯片，直接用 Ctrl+V（粘贴）放进来。',qImgAttached:'已添加照片 — 会和问题一起发送',
+    fupTitle:'继续提问',fupWide:'换个话题',fupWideLoading:'正在寻找其他话题…',fupLoading:'正在生成问题…',
+    deepDetail:'更详细',deepEasy:'简单点',deepExample:'举例',deepWhy:'为什么？',deepGen:'✨ 从这个回答中提取问题',
+    deepDetailQ:'请更详细地说明刚才的回答，包括省略的背景和细节',
+    deepEasyQ:'请用更简单的话重新说明刚才的回答',
+    deepExampleQ:'请举一个能帮助理解刚才说明的具体例子',
+    deepWhyQ:'请就刚才回答中的原因再深入说明一步',
+    starOn:'★ 已收藏',starOff:'☆ 收藏',starRemove:'★ 取消收藏',pinHeaderFmt:'⭐ 已收藏 {n} 个回答 · 按最近收藏顺序'
   },
   es:{
     headerTitle:"Ryan's Note",headerSub:'Grabación · Transcripción · Resumen · Preguntas · Vocabulario',
@@ -1680,7 +1701,14 @@ const UI_STRINGS={
     whoUsing:'✅ Usando como {name}',whoOk:'✅ Código verificado',
     recBanner:'Quedan {n} segmentos de audio sin procesar. El original está a salvo.',
     recRetry:'🔁 Reintentar',recDrop:'🗑️ Eliminar',
-    qImgBtn:'📷 Adjuntar foto',qImgTip:'También puedes capturar un problema o diapositiva y pegarlo directamente con Ctrl+V.',qImgAttached:'Foto adjunta — se enviará junto con la pregunta'
+    qImgBtn:'📷 Adjuntar foto',qImgTip:'También puedes capturar un problema o diapositiva y pegarlo directamente con Ctrl+V.',qImgAttached:'Foto adjunta — se enviará junto con la pregunta',
+    fupTitle:'Seguir preguntando',fupWide:'Otro tema',fupWideLoading:'Buscando otro tema…',fupLoading:'Generando preguntas…',
+    deepDetail:'Más detalle',deepEasy:'Más fácil',deepExample:'Ejemplo',deepWhy:'¿Por qué?',deepGen:'✨ Generar preguntas de esta respuesta',
+    deepDetailQ:'Explica la última respuesta con más detalle, incluyendo el trasfondo y los detalles omitidos',
+    deepEasyQ:'Vuelve a explicar la última respuesta con palabras más sencillas',
+    deepExampleQ:'Da un ejemplo concreto que ayude a entender la última explicación',
+    deepWhyQ:'Profundiza un nivel más en la razón de la última respuesta',
+    starOn:'★ Marcado',starOff:'☆ Marcar',starRemove:'★ Quitar marca',pinHeaderFmt:'⭐ {n} respuestas marcadas · orden de marcado reciente'
   }
 };
 function applyUILang(lang){
@@ -1703,6 +1731,7 @@ function applyUILang(lang){
   if(typeof paintAmp==='function')paintAmp();
   if(typeof paintAuthUI==='function'&&SRV.on)paintAuthUI();
   if(typeof recovery==='function')recovery();
+  if(typeof drawQA==='function'&&session)drawQA();
 }
 function trPrompt(langName){
   return `강의 녹취의 한 조각이다. 자연스러운 ${langName}로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 ${langName}면 그대로 출력한다. 전문용어는 ${langName} 뒤 괄호에 원어(영어)를 남긴다.`;
@@ -1956,8 +1985,9 @@ async function genFollowups(wide){
   if(!last&&!wide)return;
   const box=$('fupBox');
   box.style.display='block';
-  box.innerHTML=`<div class="fuplbl">${wide?'다른 주제 찾는 중…':'이어서 물어보기'}</div><div class="fups">
-    <button class="fchip load">질문 만드는 중…</button><button class="fchip load">·····</button><button class="fchip load">····</button></div>`;
+  const U=UI_STRINGS[trLang]||UI_STRINGS.ko;
+  box.innerHTML=`<div class="fuplbl">${wide?U.fupWideLoading:U.fupTitle}</div><div class="fups">
+    <button class="fchip load">${U.fupLoading}</button><button class="fchip load">·····</button><button class="fchip load">····</button></div>`;
   try{
     const asked=askedQs(),cited=citedAll(),outline=outlineOf();
     const sys=`학생이 강의에 대해 질문하고 답을 들었다. 이어서 물어볼 질문 8개를 만들어라.
@@ -1968,7 +1998,7 @@ async function genFollowups(wide){
 - 아래 [이미 물어본 질문]과 의미가 겹치는 질문은 **절대** 만들지 마라. 표현만 바꾼 것도 안 된다.
 - [이미 쓰인 대목]에 없는 부분에서 답이 나오는 질문을 우선하라.
 ${wide?'- 방금 대화 주제는 충분히 다뤘다. **완전히 다른 주제**로만 채워라.':'- 절반은 방금 답변을 한 단계 더 깊게, 절반은 강의의 다른 부분으로 넓혀라.'}
-- 짧게. 한국어 한 문장, 12~30자. (버튼에 들어가야 한다)
+- 짧게. ${TR_LANGS[trLang].name} 한 문장, 12~30자. (버튼에 들어가야 한다)
 
 [이미 물어본 질문]
 ${asked.length?asked.map(q=>'- '+q).join('\n'):'(없음)'}
@@ -2001,9 +2031,10 @@ function drawFollowups(){
   const box=$('fupBox');if(!box)return;
   if(!f.length){box.innerHTML='';box.style.display='none';return;}
   box.style.display='block';
+  const U=UI_STRINGS[trLang]||UI_STRINGS.ko;
   box.innerHTML=`<div class="fuplbl" style="display:flex;justify-content:space-between;align-items:center;">
-      <span>이어서 물어보기</span>
-      <span class="link" style="font-size:11px;" onclick="genFollowups(true)">🔀 다른 주제로</span>
+      <span>${esc(U.fupTitle)}</span>
+      <span class="link" style="font-size:11px;" onclick="genFollowups(true)">🔀 ${esc(U.fupWide)}</span>
     </div><div class="fups" id="fups">${
     f.map(q=>`<button class="fchip" data-q="${esc(q)}" title="${esc(q)}" onclick="askThis(this)">${esc(q)}</button>`).join('')}</div>`;
   const r=$('fups');if(r)r.scrollLeft=0;
@@ -2215,17 +2246,21 @@ function retryAsk(btn){
 /* ── 답변마다 붙는 "더 깊게" 줄 ──
    누르면 그 답변을 기준으로 한 단계 더 파고든다. 앞의 네 개는 호출 없이 바로 쓰고,
    마지막 버튼은 그 답변에 맞춘 질문을 새로 만들어 준다. */
-const DEEP_PRESET=[
-  ['더 자세히','방금 답변을 더 자세히, 생략된 배경과 세부까지 설명해줘'],
-  ['쉽게','방금 답변을 영어에 약한 사람도 알아듣게 쉬운 말로 다시 설명해줘'],
-  ['예시','방금 설명을 이해할 수 있는 구체적인 예시를 들어줘'],
-  ['왜?','방금 답변에서 그렇게 되는 이유를 한 단계 더 파고들어 설명해줘']
-];
+function deepPreset(){
+  const U=UI_STRINGS[trLang]||UI_STRINGS.ko;
+  return [
+    [U.deepDetail,U.deepDetailQ],
+    [U.deepEasy,U.deepEasyQ],
+    [U.deepExample,U.deepExampleQ],
+    [U.deepWhy,U.deepWhyQ]
+  ];
+}
 function deepRow(i){
+  const U=UI_STRINGS[trLang]||UI_STRINGS.ko;
   return `<div class="deepwrap" id="deep-${i}">
     <div class="deeps">
-      ${DEEP_PRESET.map(d=>`<button class="dchip" onclick="askDeeper(${i},'${esc(d[1])}')">${esc(d[0])}</button>`).join('')}
-      <button class="dchip gen" onclick="genDeepQs(${i},this)">✨ 이 답변에서 질문 뽑기</button>
+      ${deepPreset().map(d=>`<button class="dchip" onclick="askDeeper(${i},'${esc(d[1])}')">${esc(d[0])}</button>`).join('')}
+      <button class="dchip gen" onclick="genDeepQs(${i},this)">${esc(U.deepGen)}</button>
     </div>
     <div class="deeps" id="deepq-${i}"></div>
   </div>`;
@@ -2273,20 +2308,21 @@ function togglePin(i){
 function drawQA(){
   const l=(session&&session.qa)||[];
   const st=l.map((x,i)=>({x,i})).filter(o=>o.x.star).sort((a,b)=>b.x.star-a.x.star);
+  const U=UI_STRINGS[trLang]||UI_STRINGS.ko;
   const pin=$('pinBox');
   if(pin){
-    pin.innerHTML=st.length?`<div class="pinhd">⭐ 별표한 답변 ${st.length}개 · 최근에 별표한 순서</div>`+
+    pin.innerHTML=st.length?`<div class="pinhd">${esc(U.pinHeaderFmt.replace('{n}',st.length))}</div>`+
       st.map(o=>`<div class="pin">
         <div class="pinq" onclick="togglePin(${o.i})"><span class="pinno">#${o.i+1}</span><span>${esc(o.x.q)}</span><span class="pincar" id="car-${o.i}">▾</span></div>
         <div class="pina" id="pina-${o.i}" style="display:none;">${citeHtml(o.x.a)}
-          <button class="starbtn on" onclick="toggleStar(${o.i})">★ 별표 해제</button></div>
+          <button class="starbtn on" onclick="toggleStar(${o.i})">${esc(U.starRemove)}</button></div>
       </div>`).join('')
       :'';
   }
   $('qaList').innerHTML=l.map((x,i)=>`<div class="qa" id="qa-${i}">
       <div class="q">${esc(x.q)}</div>
       <div class="a">${citeHtml(x.a)}
-        <button class="starbtn${x.star?' on':''}" onclick="toggleStar(${i})">${x.star?'★ 별표됨':'☆ 별표'}</button>
+        <button class="starbtn${x.star?' on':''}" onclick="toggleStar(${i})">${x.star?esc(U.starOn):esc(U.starOff)}</button>
         <span class="qno">#${i+1}</span>
         ${deepRow(i)}
       </div></div>`).join('');
