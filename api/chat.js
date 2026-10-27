@@ -2,6 +2,8 @@
 // 브라우저는 API 키를 전혀 모릅니다. 키는 Vercel 환경변수 OPENAI_API_KEY 에만 있습니다.
 
 const MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
+// 객관식 채점처럼 정확도가 중요한 질문(클라이언트가 strong:true 로 요청)에만 쓰는 모델. 비용을 줄이려면 OPENAI_CHAT_MODEL_STRONG 을 gpt-4o-mini 로 두면 됩니다.
+const MODEL_STRONG = process.env.OPENAI_CHAT_MODEL_STRONG || 'gpt-4o';
 const MAX_CHARS = Number(process.env.MAX_CHARS || 140000);   // 한 요청에 보낼 수 있는 글자 수 상한
 const RATE_PER_MIN = Number(process.env.RATE_PER_MIN || 40); // 코드별 분당 요청 수
 const DAILY_LIMIT = Number(process.env.DAILY_LIMIT || 0);    // 코드별 하루 요청 수 (0 = 무제한)
@@ -77,7 +79,7 @@ module.exports = async (req, res) => {
     if (chars > MAX_CHARS) return res.status(413).json({ error: '보낸 내용이 너무 깁니다.' });
 
     const payload = {
-      model: MODEL,
+      model: b.strong ? MODEL_STRONG : MODEL,
       messages: b.messages,
       temperature: typeof b.temperature === 'number' ? b.temperature : 0.3,
     };
