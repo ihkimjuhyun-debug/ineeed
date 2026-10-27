@@ -375,7 +375,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
       <button class="btn btn-out btn-sm" style="margin-top:12px;" id="testBtn" data-i18n="testBtn" onclick="toggleTest()">소리 테스트</button>
     </div>
 
-    <div class="status"><span class="dot dot-off" id="dot"></span><span id="statusTxt" data-i18n="statusTxt">대기 중</span></div>
+    <div class="status"><span class="dot dot-off" id="dot"></span><span id="statusTxt" data-i18n="statusTxt">대기 중</span> <span id="wakeInd" style="display:none;font-size:11px;font-weight:700;margin-left:8px;"></span></div>
     <div class="card" style="text-align:center;">
       <div class="timer" id="timer">00:00:00</div>
       <div class="meta" id="meta" data-i18n="metaIdle">아직 녹음하지 않았습니다</div>
@@ -566,7 +566,7 @@ const AMP={1:{name:'보통',max:14,hold:900},2:{name:'강하게',max:38,hold:700
            3:{name:'아주 강하게',max:80,hold:550},4:{name:'최대',max:160,hold:400}};
 const CFG={
   STT:'whisper-1', STT_FB:'gpt-4o-transcribe',
-  LLM:'gpt-4o-mini',
+  LLM:'gpt-4o-mini', LLM_STRONG:'gpt-4o',   // 객관식 채점처럼 틀리면 안 되는 질문에만 더 똑똑한 모델 사용
   CHUNK_SEC:30, MAX_EXTEND:12, SILENCE_GAP:.30, OVERLAP:.15, TARGET_RMS:.10,
   SPEECH_MULT:1.7, SPEECH_FLOOR:5e-4, SILENT_RATIO:.005, SILENT_PEAK_MULT:2.0,
   CTX_MAX:52000,      // 한 번에 모델에 넣는 최대 글자수 (넘으면 관련 부분만 추림)
@@ -585,21 +585,51 @@ let noSleepVideo=null,noSleepTimer=null;
 /* Wake Lock API가 없거나 실패하는 브라우저를 위한 대체 화면-꺼짐 방지 (NoSleep.js와 같은 방식):
    1x1 캔버스를 계속 그려서 "재생 중"인 무음 영상 스트림을 만들어 틀어두면
    브라우저/OS가 화면을 꺼도 되는 탭으로 취급하지 않는다. */
+let noSleepCtx=null,wakeTry=0;
+function paintWake(){
+  const el=document.getElementById('wakeInd');if(!el)return;
+  if(state==='idle'||!state){el.style.display='none';return;}
+  el.style.display='inline';
+  const wl=!!(wakeLock&&!wakeLock.released);
+  el.textContent=wl?'🔆 Wake Lock':(noSleepVideo&&!noSleepVideo.paused?'🔆 Fallback':'🔆 OFF');
+  el.style.color=wl?'#2e9e5b':(noSleepVideo&&!noSleepVideo.paused?'#c98a00':'#d33');
+  el.title=wl?'화면 꺼짐 방지: 브라우저 Wake Lock 작동 중':'Wake Lock을 얻지 못했습니다. 이 탭을 화면에 켜두세요.';
+}
+/* 화면 꺼짐 방지 잠금. 탭이 가려지거나 절전/배터리 세이버가 걸리면 브라우저가 잠금을 "스스로" 풀어버린다.
+   이때 변수는 남아 있으므로 sentinel.released 로 확인해서 다시 잡아야 한다. */
+async function wakeOn(){
+  try{
+    if(!('wakeLock' in navigator))return false;
+    if(document.visibilityState!=='visible')return false;   // 가려진 탭은 요청 자체가 거부된다
+    if(wakeLock&&!wakeLock.released)return true;
+    const sent=await navigator.wakeLock.request('screen');
+    wakeLock=sent;
+    sent.addEventListener('release',()=>{if(wakeLock===sent)wakeLock=null;paintWake();});
+    paintWake();return true;
+  }catch(e){wakeLock=null;paintWake();return false;}
+}
+function wakeOff(){
+  const w=wakeLock;wakeLock=null;
+  if(w)w.release().catch(()=>{});
+  paintWake();
+}
+/* Wake Lock이 없거나 막힌 브라우저를 위한 대체책 (NoSleep.js 방식): 계속 프레임이 갱신되는 영상을 재생 상태로 둔다. */
 function noSleepOn(){
   try{
     if(!noSleepVideo){
-      const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;
-      const cx=canvas.getContext('2d');
-      noSleepTimer=setInterval(()=>{cx.fillRect(0,0,1,1);},1000);
-      const stream=canvas.captureStream?canvas.captureStream():null;
+      const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;
+      noSleepCtx=canvas.getContext('2d');
+      const stream=canvas.captureStream?canvas.captureStream(5):null;
       if(!stream)return;
       noSleepVideo=document.createElement('video');
       noSleepVideo.setAttribute('playsinline','');noSleepVideo.muted=true;noSleepVideo.loop=true;
-      noSleepVideo.style.cssText='position:fixed;left:-9999px;width:1px;height:1px;opacity:0;';
+      // 데스크톱 크롬은 화면 밖·투명·1px 영상은 "보이는 영상"으로 치지 않아 절전을 막아주지 않는다 → 모서리에 실제로 보이게 둔다
+      noSleepVideo.style.cssText='position:fixed;right:0;bottom:0;width:16px;height:16px;opacity:.02;pointer-events:none;z-index:-1;';
       noSleepVideo.srcObject=stream;
       document.body.appendChild(noSleepVideo);
     }
-    noSleepVideo.play().catch(()=>{});
+    if(!noSleepTimer){let f=0;noSleepTimer=setInterval(()=>{if(noSleepCtx){noSleepCtx.fillStyle=(f++%2)?'#010101':'#000';noSleepCtx.fillRect(0,0,64,64);}},500);}
+    noSleepVideo.play().then(paintWake).catch(()=>{});
   }catch(e){}
 }
 function noSleepOff(){
@@ -682,9 +712,9 @@ window.addEventListener('load',async()=>{
   window.addEventListener('beforeunload',e=>{if(state!=='idle'){e.preventDefault();e.returnValue='';}});
   document.addEventListener('visibilitychange',async()=>{
     if(document.visibilityState==='visible'&&state==='recording'){
-      if(!wakeLock){try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+      await wakeOn();
       if(ac&&ac.state==='suspended'){try{await ac.resume();}catch(e){}}
-      noSleepOn();
+      noSleepOn();paintWake();
     }});
 });
 function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec,trLang}));}catch(e){}}
@@ -907,7 +937,11 @@ function watchCut(){
   clearInterval(cutTimer);
   cutTimer=setInterval(()=>{
     if(state!=='recording')return;
+    paintWake();
+    if(Date.now()-(window.__lastAR||0)>60000){window.__lastAR=Date.now();autoRetryFailed();}
     if(ac&&ac.state==='suspended'){ac.resume().catch(()=>{});}
+    // 브라우저가 화면 잠금을 풀어버렸으면(배터리 세이버 등) 5초마다 다시 시도
+    if((!wakeLock||wakeLock.released)&&document.visibilityState==='visible'&&Date.now()-wakeTry>5000){wakeTry=Date.now();wakeOn();noSleepOn();}
     // 소리가 5초 넘게 안 들어오면 녹음이 멈춘 것 (모바일에서 화면을 끄거나 앱을 전환한 경우)
     if(lastPcmAt&&!stalled&&Date.now()-lastPcmAt>5000){
       stalled=true;
@@ -1043,7 +1077,7 @@ async function start(){
   if(!SRV.on){try{localStorage.setItem(LS_K,key());}catch(e){}}
   if(testing){testing=false;closeAudio();$('testBtn').innerText='소리 테스트';}
   try{await openAudio();}catch(e){closeAudio();return alert(e.message||'소리를 가져올 수 없습니다.');}
-  try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+  await wakeOn();
   noSleepOn();
   if(dispStream)dispStream.getAudioTracks().forEach(t=>t.onended=()=>{if(state!=='idle'){alert('화면 공유가 중지되어 녹음을 종료합니다.');stop();}});
   const now=new Date(),tag={mic:'교실',disp:'온라인',both:'온라인+마이크'}[srcMode];
@@ -1071,14 +1105,14 @@ function togglePause(){
 function stop(){
   if(state==='idle')return;
   clearInterval(cutTimer);stopTimer();
-  if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;}
+  wakeOff();
   noSleepOff();
   $('dot').className='dot dot-off';$('statusTxt').innerText='마지막 구간 처리 중...';
   $('live').style.display='none';finalizing=true;
   if(frN>0){frames.push(Math.sqrt(frAcc/frN));frAcc=0;frN=0;}
   const had=pcmLen>0;state='recording';
   if(had)cut(true);else finish();
-  state='idle';closeAudio();
+  state='idle';paintWake();closeAudio();
 }
 function finish(){
   if(!finalizing)return;finalizing=false;
@@ -1118,28 +1152,63 @@ function segFilter(segs){
 }
 
 /* ═══════════ 전사 ═══════════ */
-async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
-  if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 코드 없음':'API 키 없음');return;}
+/* ── 받아쓰기 전송 큐 ──
+   예전에는 구간이 끊길 때마다 전부 동시에 전송했고, fetch에 제한시간도 없었다.
+   인터넷이 불안하면 요청이 "응답도 에러도 없이" 멈춰서 구간이 영원히 '받아쓰는 중'으로 남고,
+   복구되면 밀린 구간이 한꺼번에 몰려 또 막혔다. 그래서:
+   ① 동시 전송 수를 제한(오래된 구간부터)  ② 요청마다 제한시간  ③ 인터넷이 끊기면 재시도 횟수를 쓰지 않고 대기했다가 복구 즉시 재전송
+   ④ 재시도 횟수·대기를 늘리고, 그래도 실패한 구간은 녹음 중에 자동으로 다시 시도 */
+const STT_CONC=4,STT_TIMEOUT=90000,STT_MAX_RETRY=8;
+const sttQ=[],sttParked=[];let sttActive=0;
+function fetchT(url,opts,ms){
+  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);
+  return fetch(url,Object.assign({},opts,{signal:ac.signal})).finally(()=>clearTimeout(t));
+}
+function sttEnqueue(job,retry){
+  if(retry!=null)job.args[5]=retry;
+  if(job.args[6]){sttRun(job);return;}          // 업로드·복구는 호출한 쪽이 동시성을 조절한다
+  sttQ.push(job);sttQ.sort((x,y)=>x.args[2]-y.args[2]);sttPump();
+}
+function sttPump(){
+  while(sttActive<STT_CONC&&sttQ.length){
+    const job=sttQ.shift();sttActive++;
+    sttRun(job).catch(()=>{}).finally(()=>{sttActive--;sttPump();});
+  }
+}
+function sttPark(job){sttParked.push(job);updateMeta();}
+window.addEventListener('online',()=>{
+  const l=sttParked.splice(0);l.forEach(j=>sttEnqueue(j));updateMeta();
+  setTimeout(autoRetryFailed,1500);
+});
+window.addEventListener('offline',()=>updateMeta());
+function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
+  return new Promise(resolve=>sttEnqueue({args:[sess,idbKey,n,tSec,blob,retry,isRec,model],resolve},retry));
+}
+async function sttRun(job){
+  const [sess,idbKey,n,tSec,blob,retry,isRec,model]=job.args;
+  const done=()=>job.resolve();
+  if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 코드 없음':'API 키 없음');return done();}
+  if(navigator.onLine===false){sttPark(job);return;}
   try{
     const verbose=(model==='whisper-1');
     const fmt=verbose?'verbose_json':'json';
     let res;
     if(SRV.on){
       const b64=await blobToB64(blob);
-      res=await fetch('/api/transcribe',{method:'POST',headers:srvHeaders(),
-        body:JSON.stringify({audio:b64,model,response_format:fmt})});
+      res=await fetchT('/api/transcribe',{method:'POST',headers:srvHeaders(),
+        body:JSON.stringify({audio:b64,model,response_format:fmt})},STT_TIMEOUT);
       if(res.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
     }else{
       const fd=new FormData();
       fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');
       fd.append('response_format',fmt);
-      res=await fetch('https://api.openai.com/v1/audio/transcriptions',
-        {method:'POST',headers:{'Authorization':'Bearer '+key()},body:fd});
+      res=await fetchT('https://api.openai.com/v1/audio/transcriptions',
+        {method:'POST',headers:{'Authorization':'Bearer '+key()},body:fd},STT_TIMEOUT);
     }
     if(!res.ok){
       const txt=await res.text().catch(()=>'');
-      if((res.status===400||res.status===404||res.status===403)&&model!==CFG.STT_FB)
-        return transcribe(sess,idbKey,n,tSec,blob,0,isRec,CFG.STT_FB);
+      if((res.status===400||res.status===404||res.status===403)&&model!==CFG.STT_FB){
+        job.args[5]=0;job.args[7]=CFG.STT_FB;return sttRun(job);}
       throw new Error('HTTP '+res.status+' '+txt.slice(0,120));}
     const d=await res.json();
     let text='',filt=false;
@@ -1155,12 +1224,34 @@ async function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
     rebuild(sess);save(sess);del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
     if(!isRec&&session&&session.id===sess.id){drawDone(n,text,filt);}
+    return done();
   }catch(e){
     console.warn('구간 실패',n,e.message);
-    if(retry<5){await new Promise(r=>setTimeout(r,Math.min(30000,1500*Math.pow(2,retry))));
-      return transcribe(sess,idbKey,n,tSec,blob,retry+1,isRec,model);}
+    if(navigator.onLine===false){sttPark(job);return;}      // 인터넷이 끊긴 것 — 재시도 횟수를 쓰지 않고 복구를 기다린다
+    if(retry<STT_MAX_RETRY){
+      const wait=Math.min(30000,1500*Math.pow(2,retry))+Math.random()*1000;
+      setTimeout(()=>sttEnqueue(job,retry+1),wait);return;
+    }
     failed(sess,idbKey,n,tSec,blob,e.message);
+    return done();
   }
+}
+/* 녹음 중에 실패로 남은 구간을 다시 보낸다 (인터넷이 돌아왔을 때, 그리고 1분마다) */
+let autoRetryBusy=false;
+async function autoRetryFailed(){
+  if(autoRetryBusy||!session||state==='idle'||navigator.onLine===false)return;
+  autoRetryBusy=true;
+  try{
+    let all=[];try{all=await getAll();}catch(e){return;}
+    const f=all.filter(c=>c.status==='failed'&&c.blob&&c.sessionId===session.id);
+    for(const c of f){
+      put({key:c.key,sessionId:c.sessionId,seq:c.seq,tSec:c.tSec||0,blob:c.blob,status:'pending'}).catch(()=>{});
+      pending++;
+      const d=$('ck-'+c.seq);if(d){d.className='ck pend';const t=d.querySelector('.tx');if(t)t.innerText='다시 받아쓰는 중...';}
+      transcribe(session,c.key,c.seq,c.tSec||0,c.blob,0,false,CFG.STT);
+    }
+    if(f.length)updateMeta();
+  }finally{autoRetryBusy=false;}
 }
 function failed(sess,idbKey,n,tSec,blob,why){
   put({key:idbKey,sessionId:sess.id,seq:n,tSec,blob:blob||null,status:'failed'}).catch(()=>{});
@@ -1203,7 +1294,7 @@ function mark(l){const p=$('pad'),d=document.createElement('div');d.className='b
 function updateMeta(){
   const c=session?session.chunks.filter(x=>!x.silent).length:0;
   const w=session?(session.transcript||'').length:0;
-  $('meta').innerText=`구간 ${c}개 · ${w}자`+(pending>0?` · 처리 중 ${pending}`:'');
+  $('meta').innerText=`구간 ${c}개 · ${w}자`+(pending>0?` · 처리 중 ${pending}`:'')+(sttParked.length||navigator.onLine===false?` · ⚠ 인터넷 끊김 — 연결되면 자동 재전송${sttParked.length?' ('+sttParked.length+')':''}`:'');
 }
 
 /* ═══════════ 복구 ═══════════ */
@@ -1373,17 +1464,22 @@ function pickContext(s,q,maxChars){
   return [...chosen].sort((a,b)=>a-b).map(i=>lines[i]).join('\n');
 }
 /* ═══════════ LLM 호출 ═══════════ */
+/* 채점 메모(<분석>…</분석>)는 모델이 먼저 따져보게 하려는 용도라 학생에게 보이지 않게 지운다 */
+function stripAnalysis(t){
+  t=String(t||'').replace(/<분석>[\s\S]*?<\/분석>\s*/g,'');
+  return t.replace(/<\/?분석>/g,'').trim();
+}
 async function llm(messages,opts){
   const o=opts||{},temp=o.temp!=null?o.temp:0.3;
   if(SRV.on){
     const r=await fetch('/api/chat',{method:'POST',headers:srvHeaders(),
-      body:JSON.stringify({messages,temperature:temp,json:!!o.json,max_tokens:o.maxTokens||null})});
+      body:JSON.stringify({messages,temperature:temp,json:!!o.json,max_tokens:o.maxTokens||null,strong:!!o.strong})});
     if(r.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
     if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('HTTP '+r.status+' '+t.slice(0,200));}
     const d=await r.json();
     return d.content||'';
   }
-  const body={model:CFG.LLM,messages,temperature:temp};
+  const body={model:o.strong?CFG.LLM_STRONG:CFG.LLM,messages,temperature:temp};
   if(o.json)body.response_format={type:'json_object'};
   if(o.maxTokens)body.max_tokens=o.maxTokens;
   const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
@@ -2134,33 +2230,38 @@ async function ask(forceQ,baseIdx){
     // 상황별 지시문 ─────────────────────────────────────────
     const choiceRule=isChoice?`
 ★★ 이 질문은 보기 중 하나를 고르는 문제다. 가장 중요한 규칙이다.
-- **첫 줄에 반드시 "정답: N번" 형태로 답을 먼저 쓴다.** 설명부터 시작하지 마라.
-- 그다음 그 보기가 왜 맞는지, 그리고 나머지 보기가 왜 틀렸는지 한 문장씩 짚어준다.
+- **정답을 먼저 쓴다**(형식은 아래 채점 절차를 따른다). 설명부터 시작하지 마라.
+- 그다음 각 보기가 왜 맞고 왜 틀렸는지 한 문장씩 짚어준다.
 - 강의 원문에 근거가 있으면 위치 표시를 붙이고, 없으면 "(강의에 직접 나오지 않아 일반 지식으로 판단)"이라고 밝힌 뒤 그래도 **반드시 하나를 고른다.**
 - 답을 고르지 않고 넘어가거나 "다루지 않았습니다"로 끝내는 것은 금지다.
 - 학생이 번호만("1,2,3,4?") 물었다면 [직전 질문]에 있던 보기를 가리키는 것이다.
 `:'';
 
-    const multiRule=`
-★★ 보기가 여러 개 나열된 문제는 **기본적으로 정답이 하나뿐인 객관식**이라고 가정해라. "모두 고르시오", "해당하는 것을 모두 고르시오", "select all that apply" 처럼 **복수 정답을 명시적으로 요구하는 문구가 문제에 실제로 적혀 있을 때만** 예외다. 둘 중 뭔지 애매하면 무조건 "정답 하나"로 간주한다 — 보기가 서로 비슷해 보이거나 여러 개가 그럴듯해 보인다는 이유로 임의로 복수정답 모드를 쓰지 마라.
+    // 보기 고르기 문제로 보이면(텍스트 또는 사진) 채점 절차를 적용한다
+    const needAnalysis=isChoice||!!img||/고르|정답|보기|select|choose|which of the following|다음 중/i.test(q);
+    const multiRule=needAnalysis?`
+★★ 객관식(보기 고르기) 채점 절차 — 반드시 이 순서를 지켜라. 틀린 정답을 말하는 것이 가장 큰 실패다.
+이 질문이 보기를 고르는 문제가 아니면(개념 질문 등) 이 절차는 무시하고 평소처럼 답한다.
 
-[기본: 정답 하나] 빈칸 채우기, 드롭다운, 용어 정의 맞히기, 보통의 4~5지선다 전부 여기 해당한다:
-- 보기를 전부 검토한 뒤 **정확히 하나만** 고른다. 두 개 이상을 정답이라 하거나 "둘 다 가능하다"고 얼버무리는 것 금지.
-- **보기 중 하나가 "'a'와 'c'의 조합" / "a and c" / "both ... and ..." 처럼 다른 보기들을 함께 가리키는 "조합형" 보기일 때**, 이것도 정답은 여전히 하나다. 이 경우:
-  · 조합이 아닌 개별 보기들을 "그 보기 하나만으로 질문 전체에 대한 완전하고 정확한 설명이 되는가"로 각각 검토한다.
-  · 개별 보기 중 어느 것도 혼자서는 불완전하거나 틀렸고, 조합형 보기가 가리키는 두 보기를 합쳐야 완전한 설명이 완성된다면 → **조합형 보기 자체가 유일한 정답**이다. 그 안에 언급된 개별 보기들을 따로 정답으로 고르면 안 된다.
-  · 반대로 개별 보기 중 하나가 그 자체로 이미 완전한 정답이면 그 개별 보기가 정답이고, 조합형 보기는 오답이다.
-- 정답을 하나로 확정했으면 첫 줄에 **"정답: (고른 보기 그대로)"**를 쓰고, 그 다음 왜 맞는지와 나머지 보기들은 왜 틀렸는지(개별 보기가 조합형 보기 때문에 오답인 경우 그 이유도 포함) 각각 한 문장씩 짚는다.
+[1단계] 답변 맨 앞에 <분석> ... </분석> 블록을 쓴다. 학생에게는 보이지 않는 채점 메모이므로 길어도 된다. 안에 순서대로:
+ (가) 보기 옮겨 적기 — 문제에 인쇄된 번호 그대로 보기를 한 줄씩 옮긴다. 사진이면 눈에 보이는 글자 그대로. 번호를 새로 매기거나 순서를 바꾸지 않는다.
+ (나) 선택 방식 판정 — 문제에 아래 문구가 **실제로 적혀 있는지** 확인하고, 있으면 그 문구를 인용한다.
+   · 개수 지정: "2개 고르시오", "choose two", "select 3" → 정확히 그 개수
+   · 모두 선택: "모두 고르시오", "해당하는 것을 모두", "all that apply", "select all", 보기 앞의 네모 체크박스 → 맞는 것 전부(1개일 수도 있다)
+   · 위 문구가 없으면 → 정답 하나 (보기가 비슷하거나 그럴듯한 게 여러 개라는 이유만으로 복수 정답으로 보지 마라)
+ (다) 보기별 판정 — 각 보기를 다른 보기와 따로 떼어, 강의 원문(없으면 일반 지식)을 근거로 "참/거짓"과 이유 한 줄을 쓴다.
+   · "'b'와 'd'의 조합", "both A and C", "위 모두", "정답 없음" 같은 보기는 다른 보기 판정을 모두 끝낸 뒤 맨 마지막에 판정한다 (가리키는 보기들이 실제로 참일 때만 참).
+ (라) 최종 결정
+   · 개수 지정 → 참인 보기 중 가장 확실한 N개. 참인 보기 수가 N과 다르면 (다)를 다시 검토한다.
+   · 모두 선택 → 참인 보기 전부.
+   · 정답 하나 → 참인 보기가 하나면 그것. 참으로 보이는 게 여럿이면 질문이 묻는 바에 가장 직접적이고 완전하게 답하는 **하나만**. 개별 보기들이 각각 불완전하고 조합형 보기가 그 둘을 합치면 완전해지면 조합형 보기가 정답이다.
+   · 마지막 줄에 최종정답=[번호들] 로 적는다.
 
-[예외: 정답 복수] 문제에 "모두 고르시오" 류의 지시가 실제로 있을 때만:
-- **설명보다 먼저**, 보기를 나열된 순서대로 짧게 요약하며 각각 판정을 매긴 목록을 맨 위에 둔다. 형식:
-  1. (보기 요약) — O
-  2. (보기 요약) — X
-- 판정은 O(해당/맞음) 또는 X(비해당/틀림) 둘 중 하나로 **모든 보기에 대해 빠짐없이** 매긴다.
-- 이 판정 목록을 먼저 낸 다음에만 각 항목별 근거를 짧게 설명한다.
-
-사진으로 받은 문제도 텍스트 문제와 똑같이 이 규칙을 적용한다.
-`;
+[2단계] </분석> 뒤에 학생에게 보이는 답변을 쓴다.
+ - 첫 줄: "정답: N번" (복수면 "정답: 2번, 3번"). **분석의 최종정답과 정확히 일치**해야 한다.
+ - 이어서 모든 보기를 번호순으로 한 줄씩 "번호. (보기 요약) — O 또는 X : 이유 한 문장". O가 붙은 번호는 첫 줄의 정답과 정확히 같아야 한다.
+ - 그다음 근거 위치 표시 등 평소 형식.
+`:'';
 
     const repeatRule=deepen?`
 ★ 학생이 같은 주제를 다시 묻고 있다 — 더 짧게가 아니라 **더 자세히** 답하라.
@@ -2203,7 +2304,8 @@ ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
     for(let t=0;t<2;t++){                 // 인터넷이 잠깐 끊긴 정도면 스스로 한 번 더 시도
       try{
         a=await llm([{role:'system',content:sys},{role:'user',content:userContent}],
-          {temp:.2,maxTokens:isChoice||deepen?1800:1200});
+          {temp:needAnalysis?.1:.2,maxTokens:needAnalysis?3200:(isChoice||deepen?1800:1200),strong:needAnalysis});
+        a=stripAnalysis(a);
         break;
       }catch(err){
         lastErr=err;
