@@ -1,6 +1,7 @@
 // POST /api/transcribe — 녹음 한 구간(WAV)을 받아 음성인식 결과를 돌려줍니다.
 // 오디오는 base64 JSON 으로 받습니다. (multipart 파싱 차이에 휘둘리지 않게)
 // 16kHz mono 16bit 기준: 30초 ≈ 1MB, base64 로도 ≈ 1.3MB → Vercel 본문 한도 4.5MB 안쪽.
+// prompt(선택): "Vocabulary: gerund, infinitive." 처럼 강의에 나올 용어를 알려주면 받아쓰기가 그 단어를 먼저 떠올려 오인식이 줄어듭니다.
 
 const ALLOWED = ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe', 'whisper-1'];
 const RATE_PER_MIN = Number(process.env.STT_RATE_PER_MIN || 200); // 코드별 분당 구간 수 — 파일 업로드 시 여러 구간을 동시에 보내므로 여유 있게
@@ -63,12 +64,14 @@ module.exports = async (req, res) => {
 
     const model = ALLOWED.indexOf(b.model) !== -1 ? b.model : 'gpt-4o-transcribe';
     const fmt = b.response_format === 'verbose_json' ? 'verbose_json' : 'json';
+    const prompt = typeof b.prompt === 'string' ? b.prompt.trim().slice(0, 600) : '';
 
     const fd = new FormData();
     fd.append('file', new Blob([buf], { type: 'audio/wav' }), 'a.wav');
     fd.append('model', model);
     fd.append('temperature', '0');
     fd.append('response_format', fmt);
+    if (prompt) fd.append('prompt', prompt);
 
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -78,7 +81,7 @@ module.exports = async (req, res) => {
     const text = await r.text();
     if (!r.ok) return res.status(r.status).json({ error: text.slice(0, 400) });
 
-    console.log(`[stt] ${who.name} bytes=${buf.length} model=${model}`);
+    console.log(`[stt] ${who.name} bytes=${buf.length} model=${model}${prompt ? ' prompt=1' : ''}`);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return res.status(200).send(text);
   } catch (e) {
