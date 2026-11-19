@@ -57,6 +57,20 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 @keyframes sumGlow{0%,100%{box-shadow:0 0 0 0 rgba(52,199,89,.6);transform:scale(1);}50%{box-shadow:0 0 16px 6px rgba(52,199,89,.45);transform:scale(1.015);}}
 .timer{font-size:36px;font-weight:900;text-align:center;letter-spacing:1px;}
 .meta{text-align:center;font-size:11.5px;color:#aaa;font-weight:700;margin-top:3px;}
+.padwrap{position:relative;}
+.padjump{position:absolute;right:10px;bottom:10px;z-index:5;border:none;border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:800;color:#fff;background:rgba(0,122,255,.94);box-shadow:0 4px 14px rgba(0,122,255,.35);cursor:pointer;font-family:inherit;}
+.padjump:active{transform:scale(.97);}
+.fixbox{margin-top:8px;padding:9px 11px;border-radius:11px;background:#FFF8E6;border:1px solid #FFE3A3;font-size:13px;line-height:1.7;color:#7a5a00;}
+.fixbox .fx-none{color:#a08a50;font-weight:700;}
+.fixit{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:3px 0;}
+.fixit .fx-h{font-weight:800;color:#c0392b;text-decoration:line-through;text-decoration-color:rgba(192,57,43,.5);}
+.fixit .fx-opt{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #FFD479;border-radius:9px;padding:2px 3px 2px 8px;font-weight:800;color:#1C1C1E;}
+.fixit button{border:none;border-radius:7px;padding:4px 8px;font-size:11.5px;font-weight:800;cursor:pointer;font-family:inherit;background:#EAF3FF;color:var(--blue);}
+.fixit button.fx-all{background:#F2EEFF;color:var(--purple);}
+.fixit button.fx-x{background:#F2F2F7;color:#8E8E93;}
+.fixit .fx-r{font-size:11.5px;color:#a08a50;font-weight:700;}
+.scanbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.scanbar .scanstat{font-size:12px;font-weight:700;color:#8E8E93;}
 .pad{background:#fff;border-radius:16px;padding:4px 18px;border:1px solid #EAEAEA;min-height:130px;max-height:44vh;overflow-y:auto;}
 .ck{padding:11px 0;border-bottom:1px solid #F4F4F6;}.ck:last-child{border-bottom:none;}
 .ck .ts{font-size:11px;font-weight:900;color:var(--blue);margin-bottom:4px;}
@@ -79,6 +93,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 .trbtn.on{border-color:var(--blue);background:var(--blue);color:#fff;}
 .trbtn svg{width:16px;height:16px;display:block;}
 .trbtn.busy{border-color:var(--blue);color:var(--blue);}
+.trbtn.fixb.busy,.trbtn.re.busy{opacity:.45;pointer-events:none;}
 .trbtn.busy svg{animation:spin .9s linear infinite;}
 /* 우측 하단 실시간 번역 토글 (재활용 화살표) */
 .fab{position:fixed;right:16px;bottom:20px;width:54px;height:54px;border-radius:50%;border:none;
@@ -398,6 +413,11 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
       <div class="tip" data-i18n="trTip">각 문단 아래 ⟲ 버튼을 누르면 이 언어로 번역해서 보여줍니다.</div>
     </div>
 
+    <div class="card" id="hintCard" style="margin-top:12px;">
+      <div class="lbl" id="hintLbl">🎯 용어 힌트 (선택)</div>
+      <input type="text" id="termHint" class="inp" placeholder="gerund, infinitive, to-infinitive" autocomplete="off">
+      <div class="tip" id="hintTip"></div>
+    </div>
     <input type="file" id="audioFile" accept="audio/*" style="display:none;" onchange="uploadAudioFile(this)">
     <button class="btn btn-out" style="margin-top:12px;" data-i18n="uploadBtn" onclick="document.getElementById('audioFile').click()">📁 음성 파일 업로드 (+)</button>
     <div class="tip" data-i18n="uploadTip">이미 녹음해 둔 파일(mp3, m4a, wav 등)을 통째로 올리면 자동으로 구간을 나눠 한꺼번에 전사합니다. 2시간짜리도 몇 분이면 끝나요. 파일이 아주 길면(2시간 이상) 휴대폰보다 PC에서 여는 걸 추천해요.</div>
@@ -407,7 +427,8 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
       <div class="lbl" style="display:flex;justify-content:space-between;">
         <span data-i18n="transcriptLabel">받아쓰기</span><span id="saved" style="color:#c8c8c8;font-weight:700;">-</span>
       </div>
-      <div class="pad" id="pad"><div class="hint" data-i18n-html="padHint">녹음을 시작하면<br>여기에 텍스트가 쌓입니다</div></div>
+      <div class="padwrap"><div class="pad" id="pad"><div class="hint" data-i18n-html="padHint">녹음을 시작하면<br>여기에 텍스트가 쌓입니다</div></div>
+        <button id="padJump" class="padjump" style="display:none;" onclick="padToBottom()"></button></div>
     </div>
     <button id="toStudy" class="btn btn-pur" style="display:none;margin-top:14px;" data-i18n="toStudyBtn" onclick="goTab('std')">📚 학습 화면으로 (요약 · 질문 · 단어장)</button>
   </div>
@@ -532,6 +553,7 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:2px 0 0;}
 
       <!-- 전문 -->
       <div id="pane-full" class="pane" style="display:none;">
+        <div class="scanbar"><button class="btn btn-out btn-sm" id="scanBtn" style="width:auto;padding:0 16px;" onclick="scanAllMisheard()"></button><span class="scanstat" id="scanStat"></span></div>
         <div class="card" id="fullArea"></div>
       </div>
     </div>
@@ -638,6 +660,26 @@ function noSleepOff(){
     if(noSleepTimer){clearInterval(noSleepTimer);noSleepTimer=null;}
   }catch(e){}
 }
+const t4=o=>o[trLang]||o.ko;
+function parseTerms(str){
+  return String(str||'').split(/[,\n;，、]+/).map(x=>x.trim()).filter(x=>x&&x.length<=40).slice(0,40);
+}
+function sttPrompt(sess){
+  const t=(sess&&sess.terms)||[];
+  if(!t.length)return '';
+  let out='Vocabulary: ',first=true;
+  for(const w of t){if((out+w).length>380)break;out+=(first?'':', ')+w;first=false;}
+  return out+'.';
+}
+function paintHintUI(){
+  const l=$('hintLbl'),tp=$('hintTip');if(!l||!tp)return;
+  l.innerText=t4({ko:'🎯 용어 힌트 (선택)',ja:'🎯 用語ヒント（任意）',zh:'🎯 术语提示（可选）',es:'🎯 Pista de términos (opcional)'});
+  tp.innerText=t4({
+    ko:'교수님이 자주 말할 전문용어를 쉼표로 적어두면 받아쓰기가 그 단어를 먼저 떠올려 오인식이 크게 줄어듭니다. 오인식 점검(🔎)에서 고친 단어는 자동으로 추가됩니다.',
+    ja:'先生がよく使う専門用語をカンマで入れておくと、書き起こしがその単語を優先して認識し、誤認識が大きく減ります。誤認識チェック（🔎）で直した単語は自動で追加されます。',
+    zh:'把老师常说的专业术语用逗号写在这里，转写时会优先识别这些词，误识别会大幅减少。在“误识别检查（🔎）”中改过的词会自动加入。',
+    es:'Escribe, separados por comas, los términos técnicos que usará el profesor: la transcripción los reconocerá antes y habrá muchos menos errores. Las palabras que corrijas con 🔎 se añaden solas.'});
+}
 let srcMode='mic',ampLv=2,stdPane='sum',vocHidden=false;
 let qImage=null;                        // 질문하기에 첨부된 스크린샷(data URL) — 전송 즉시 비움, 저장 안 함
 let chunkSec=20;                        // 받아쓰기 간격(초) — 10 / 20 / 30
@@ -705,12 +747,14 @@ window.addEventListener('load',async()=>{
     const c=e.target.closest('.cite');if(c){jumpTo(c.dataset.k);}
     const v=e.target.closest('.vko.hide');if(v){v.classList.remove('hide');}
   });
-  paintTrLangSel();applyUILang(trLang);
+  paintTrLangSel();applyUILang(trLang);paintHintUI();paintPadJump();initPadScroll();
   $('appPass').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();savePass();}});
-  detectServer();
-  await recovery();renderArc();
-  window.addEventListener('beforeunload',e=>{if(state!=='idle'){e.preventDefault();e.returnValue='';}});
+  await detectServer();
+  await recovery(true);renderArc();
+  window.addEventListener('beforeunload',e=>{if(state!=='idle'){flushPartial();e.preventDefault();e.returnValue='';}});
+  window.addEventListener('pagehide',()=>{if(state==='recording')flushPartial();});
   document.addEventListener('visibilitychange',async()=>{
+    if(document.visibilityState==='hidden'&&state==='recording')flushPartial();
     if(document.visibilityState==='visible'&&state==='recording'){
       await wakeOn();
       if(ac&&ac.state==='suspended'){try{await ac.resume();}catch(e){}}
@@ -928,6 +972,21 @@ function onPcm(b){
   for(let i=0;i<b.length;i++){frAcc+=b[i]*b[i];frN++;
     if(frN>=frTarget){const r=Math.sqrt(frAcc/frN);frames.push(r);nfWin.push(r);if(nfWin.length>1400)nfWin.shift();frAcc=0;frN=0;}}
 }
+/* ── 녹음 중 임시 저장 ──
+   예전에는 한 구간(20~30초)이 다 찰 때까지 소리가 메모리에만 있어서, 그 사이에 창을 닫거나 브라우저가 꺼지면
+   "0자 · 중단" 기록만 남았다. 이제 4초마다 새로 들어온 소리를 브라우저 저장소(IndexedDB)에 조각으로 쌓아 두고,
+   구간이 정상적으로 잘리면 조각을 지운다. 다시 열면 남은 조각을 이어붙여 자동으로 받아쓴다. */
+let partIdx=0,partK=0,partKeys=[],lastPartAt=0;
+function flushPartial(){
+  if(!session||state!=='recording')return;
+  if(partIdx>=pcmParts.length)return;
+  const slice=pcmParts.slice(partIdx);partIdx=pcmParts.length;
+  let len=0;slice.forEach(x=>len+=x.length);
+  const i16=new Int16Array(len);let o=0;
+  for(const p of slice){for(let i=0;i<p.length;i++){const v=p[i]>1?1:(p[i]<-1?-1:p[i]);i16[o++]=v<0?v*32768:v*32767;}}
+  const k=session.id+'_part_'+seq+'_'+(partK++);partKeys.push(k);
+  put({key:k,sessionId:session.id,seq:seq,tSec:Math.round(chunkStart),k:partK,rate:capRate,pcm:i16.buffer,status:'part'}).catch(()=>{});
+}
 function thr(){
   let nf=5e-4;
   if(nfWin.length>=40){const a=nfWin.slice().sort((x,y)=>x-y);nf=a[Math.floor(a.length*.15)];}
@@ -938,6 +997,7 @@ function watchCut(){
   cutTimer=setInterval(()=>{
     if(state!=='recording')return;
     paintWake();
+    if(Date.now()-lastPartAt>4000){lastPartAt=Date.now();flushPartial();}
     if(Date.now()-(window.__lastAR||0)>60000){window.__lastAR=Date.now();autoRetryFailed();}
     if(ac&&ac.state==='suspended'){ac.resume().catch(()=>{});}
     // 브라우저가 화면 잠금을 풀어버렸으면(배터리 세이버 등) 5초마다 다시 시도
@@ -963,16 +1023,18 @@ function cut(isFinal){
   if(overlapTail&&overlapTail.length){const m=new Float32Array(overlapTail.length+pcm.length);m.set(overlapTail,0);m.set(pcm,overlapTail.length);pcm=m;}
   overlapTail=nextTail;
   chunkStart+=pcmLen/capRate;pcmParts=[];pcmLen=0;frames=[];frAcc=0;frN=0;
+  const doneParts=partKeys;partKeys=[];partIdx=0;partK=0;
+  const dropParts=()=>doneParts.forEach(k=>del(k).catch(()=>{}));
   const ratio=fr.length?fr.filter(r=>r>t).length/fr.length:0;
   const mx=fr.length?Math.max.apply(null,fr):0;
   const n=seq++;
   if(ratio<CFG.SILENT_RATIO&&mx<t*CFG.SILENT_PEAK_MULT){
     silent++;session.chunks.push({seq:n,tSec,text:'',silent:true});
     session.chunks.sort((a,b)=>a.seq-b.seq);save(session);
-    drawSilent(n,tSec);updateMeta();if(isFinal)finish();return;}
+    dropParts();drawSilent(n,tSec);updateMeta();if(isFinal)finish();return;}
   const p16=resample(pcm,capRate);normalize(p16);
   const wav=toWav(p16,16000),k=session.id+'_'+n;
-  put({key:k,sessionId:session.id,seq:n,tSec,blob:wav,status:'pending'}).catch(()=>{});
+  put({key:k,sessionId:session.id,seq:n,tSec,blob:wav,status:'pending'}).then(dropParts).catch(()=>{});
   pending++;drawPending(n,tSec);updateMeta();
   transcribe(session,k,n,tSec,wav,0,false,CFG.STT);
   if(isFinal)finish();
@@ -1042,6 +1104,7 @@ async function uploadAudioFile(input){
     date:now.toLocaleString('ko-KR'),chunks:[],transcript:'',duration:Math.round(totalSec*1000),complete:false,
     summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
   s.chunkSec=chunkSec;
+  s.terms=parseTerms(($('termHint')||{}).value);
   const rate=16000,stepN=chunkSec*rate,ovN=Math.min(p16.length,Math.round(rate*(CFG.OVERLAP||0)));
   const total=Math.max(1,Math.ceil(p16.length/stepN));
   const ss=sessions();ss.unshift(s);setSessions(ss);
@@ -1086,10 +1149,12 @@ async function start(){
     date:now.toLocaleString('ko-KR'),chunks:[],transcript:'',duration:0,complete:false,
     summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
   session.chunkSec=chunkSec;
-  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;
+  session.terms=parseTerms(($('termHint')||{}).value);
+  seq=0;pending=0;silent=0;elapsed=0;chunkStart=0;partIdx=0;partK=0;partKeys=[];lastPartAt=0;
+  padFollow=true;padUnread=0;
   pcmParts=[];pcmLen=0;frames=[];nfWin=[];frAcc=0;frN=0;overlapTail=null;
   save(session);
-  $('pad').innerHTML='';$('toStudy').style.display='none';$('recovery').innerHTML='';
+  $('pad').innerHTML='';paintPadJump();$('toStudy').style.display='none';$('recovery').innerHTML='';
   state='recording';lastPcmAt=Date.now();stalled=false;
   startMeter();startAgc();watchCut();startTimer();
   $('dot').className='dot dot-on';$('statusTxt').innerText='녹음 중';
@@ -1192,16 +1257,17 @@ async function sttRun(job){
   try{
     const verbose=(model==='whisper-1');
     const fmt=verbose?'verbose_json':'json';
+    const prm=sttPrompt(sess);                  // 용어 힌트 — 받아쓰기가 이 단어들을 먼저 떠올리게 한다
     let res;
     if(SRV.on){
       const b64=await blobToB64(blob);
       res=await fetchT('/api/transcribe',{method:'POST',headers:srvHeaders(),
-        body:JSON.stringify({audio:b64,model,response_format:fmt})},STT_TIMEOUT);
+        body:JSON.stringify({audio:b64,model,response_format:fmt,prompt:prm||undefined})},STT_TIMEOUT);
       if(res.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
     }else{
       const fd=new FormData();
       fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');
-      fd.append('response_format',fmt);
+      fd.append('response_format',fmt);if(prm)fd.append('prompt',prm);
       res=await fetchT('https://api.openai.com/v1/audio/transcriptions',
         {method:'POST',headers:{'Authorization':'Bearer '+key()},body:fd},STT_TIMEOUT);
     }
@@ -1216,6 +1282,7 @@ async function sttRun(job){
       const raw=(d.text||'').trim();text=segFilter(d.segments)||'';
       if(raw&&!text)filt=true;
     }else text=(d.text||'').trim();
+    if(text&&prm&&nm(text)===nm(prm)){text='';filt=true;}     // 힌트 문장을 그대로 따라 쓴 경우(무음 환각)는 버린다
     if(text){const c=clean(text);if(!c)filt=true;text=c;}
     const i=sess.chunks.findIndex(c=>c.seq===n);
     const rec={seq:n,tSec,text,filtered:filt};
@@ -1274,13 +1341,40 @@ function rebuild(s){
 }
 
 /* ═══════════ 실시간 노트패드 ═══════════ */
+/* ── 녹음 중 받아쓰기 창 스크롤 ──
+   예전에는 새 문장이 올 때마다 무조건 맨 아래로 끌어내렸다. 이제는 맨 아래를 보고 있을 때만 따라가고,
+   위로 올려서 읽는 중이면 그 자리를 지킨다. 대신 구석에 "맨 아래로" 버튼이 떠서 새 문장이 몇 개 왔는지 보여준다. */
+let padFollow=true,padUnread=0,padAuto=false;
+function padNearBottom(){const p=$('pad');return p.scrollHeight-p.scrollTop-p.clientHeight<40;}
+function padScroll(newItem){
+  const p=$('pad');if(!p)return;
+  if(padFollow){padAuto=true;p.scrollTop=p.scrollHeight;requestAnimationFrame(()=>{padAuto=false;});}
+  else if(newItem)padUnread++;
+  paintPadJump();
+}
+function paintPadJump(){
+  const b=$('padJump');if(!b)return;
+  b.style.display=padFollow?'none':'block';
+  const base=t4({ko:'맨 아래로',ja:'最新へ',zh:'回到底部',es:'Ir al final'});
+  const more=padUnread>0?' · '+t4({ko:`새 받아쓰기 ${padUnread}`,ja:`新着 ${padUnread}`,zh:`新内容 ${padUnread}`,es:`${padUnread} nuevos`}):'';
+  b.innerText='⬇ '+base+more;
+}
+function padToBottom(){padFollow=true;padUnread=0;padScroll(false);}
+function initPadScroll(){
+  const p=$('pad');if(!p)return;
+  p.addEventListener('scroll',()=>{
+    if(padAuto)return;
+    const near=padNearBottom();
+    if(near!==padFollow){padFollow=near;if(near)padUnread=0;paintPadJump();}
+  },{passive:true});
+}
 function noHint(){const h=$('pad').querySelector('.hint');if(h)h.remove();}
 function drawPending(n,t){noHint();const p=$('pad'),d=document.createElement('div');
   d.className='ck pend';d.id='ck-'+n;d.innerHTML=`<div class="ts">${clk(t)}</div><div class="tx">받아쓰는 중...</div>`;
-  p.appendChild(d);p.scrollTop=p.scrollHeight;}
+  p.appendChild(d);padScroll(false);}
 function drawSilent(n,t){noHint();const p=$('pad'),d=document.createElement('div');
   d.className='ck sil';d.id='ck-'+n;d.innerHTML=`<div class="ts"></div><div class="tx">· 무음 (${clk(t)})</div>`;
-  p.appendChild(d);p.scrollTop=p.scrollHeight;}
+  p.appendChild(d);padScroll(false);}
 function drawDone(n,text,filt){
   const d=$('ck-'+n);if(!d)return;
   if(filt){d.className='ck filt';d.querySelector('.tx').innerText='신뢰도 낮은 구간 — 제외됨';}
@@ -1288,9 +1382,9 @@ function drawDone(n,text,filt){
     d.className='ck';d.querySelector('.tx').innerText=text||'(인식된 말 없음)';
     if(text&&!d.querySelector('.trrow'))d.insertAdjacentHTML('beforeend',trBtn(n,false));
   }
-  const p=$('pad');p.scrollTop=p.scrollHeight;}
+  padScroll(!!text&&!filt);}
 function mark(l){const p=$('pad'),d=document.createElement('div');d.className='brk';
-  d.innerText=`── ${l} · ${fmt(elapsed)} ──`;p.appendChild(d);p.scrollTop=p.scrollHeight;}
+  d.innerText=`── ${l} · ${fmt(elapsed)} ──`;p.appendChild(d);padScroll(false);}
 function updateMeta(){
   const c=session?session.chunks.filter(x=>!x.silent).length:0;
   const w=session?(session.transcript||'').length:0;
@@ -1298,32 +1392,80 @@ function updateMeta(){
 }
 
 /* ═══════════ 복구 ═══════════ */
-async function recovery(){
+/* 녹음 중 임시 저장 조각(status:'part')을 이어붙여 한 구간으로 되살린다 */
+async function assembleParts(all){
+  const parts=all.filter(c=>c.status==='part'&&c.pcm);
+  if(!parts.length)return false;
+  const groups={};
+  parts.forEach(c=>{const g=c.sessionId+'|'+c.seq;(groups[g]=groups[g]||[]).push(c);});
+  const ss=sessions();
+  for(const g of Object.values(groups)){
+    g.sort((a,b)=>a.k-b.k);
+    const sid=g[0].sessionId,n=g[0].seq,key=sid+'_'+n,rate=g[0].rate||48000;
+    const sess=ss.find(x=>x.id===sid);
+    const exists=all.some(c=>c.key===key)||(sess&&(sess.chunks||[]).some(c=>c.seq===n));
+    if(!exists){
+      let len=0;g.forEach(c=>len+=c.pcm.byteLength>>1);
+      const f=new Float32Array(len);let o=0,pk=0;
+      g.forEach(c=>{const i16=new Int16Array(c.pcm);for(let i=0;i<i16.length;i++){const v=i16[i]/32768;f[o++]=v;const a=v<0?-v:v;if(a>pk)pk=a;}});
+      if(pk>0.003&&len/rate>1.5){
+        const p16=resample(f,rate);normalize(p16);
+        await put({key,sessionId:sid,seq:n,tSec:g[0].tSec||0,blob:toWav(p16,16000),status:'pending'}).catch(()=>{});
+      }
+    }
+    for(const c of g)await del(c.key).catch(()=>{});
+  }
+  return true;
+}
+async function recovery(auto){
   let all=[];try{all=await getAll();}catch(e){return;}
+  if(await assembleParts(all)){try{all=await getAll();}catch(e){return;}}
   const p=all.filter(c=>(c.status==='pending'||c.status==='failed')&&c.blob);
-  if(!p.length)return;
+  if(!p.length){$('recovery').innerHTML='';return;}
+  if(auto&&hasAuth()&&state==='idle'){retryAll(true);return;}      // 열자마자 남은 소리를 자동으로 받아쓴다
   const L=UI_STRINGS[trLang]||UI_STRINGS.ko;
   $('recovery').innerHTML=`<div class="banner">${(L.recBanner||'처리되지 못한 오디오 구간 {n}개가 남아 있습니다. 원본은 안전합니다.').replace('{n}',p.length)}
     <div class="row" style="margin-top:10px;">
       <button class="btn btn-blue btn-sm" onclick="retryAll()">${L.recRetry||'🔁 재시도'}</button>
       <button class="btn btn-gray btn-sm" onclick="dropAll()">${L.recDrop||'🗑️ 지우기'}</button></div></div>`;
 }
-async function retryAll(){
-  if(needKey())return;
-  const all=await getAll(),p=all.filter(c=>(c.status==='pending'||c.status==='failed')&&c.blob);
-  $('recovery').innerHTML=`<div class="banner info">${p.length}개 재처리 중...</div>`;
-  const ss=sessions();
-  for(const c of p){
-    let s=ss.find(x=>x.id===c.sessionId);
-    if(!s){s={id:c.sessionId,kind:'rec',title:'복구된 녹음',date:new Date().toLocaleString('ko-KR'),
-      chunks:[],transcript:'',complete:false,summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};ss.unshift(s);}
-    await transcribe(s,c.key,c.seq,c.tSec||0,c.blob,0,true,CFG.STT);}
-  setSessions(ss);$('recovery').innerHTML='<div class="banner info">완료 — 보관함에서 확인하세요.</div>';renderArc();
+let retryBusy=false;
+async function retryAll(silent){
+  if(retryBusy)return;
+  if(!hasAuth()){if(!silent)needKey();return;}
+  retryBusy=true;
+  try{
+    const all=await getAll(),p=all.filter(c=>(c.status==='pending'||c.status==='failed')&&c.blob).sort((a,b)=>(a.seq||0)-(b.seq||0));
+    if(!p.length){$('recovery').innerHTML='';return;}
+    let done=0;
+    const paint=()=>{$('recovery').innerHTML=`<div class="banner info">${t4({ko:'🔁 끊겼던 녹음을 복구하는 중',ja:'🔁 中断された録音を復元中',zh:'🔁 正在恢复中断的录音',es:'🔁 Recuperando la grabación interrumpida'})} ${done}/${p.length}</div>`;};
+    paint();
+    const ss=sessions(),touched=new Set();
+    let idx=0;
+    async function worker(){
+      while(idx<p.length){
+        const c=p[idx++];
+        let s=ss.find(x=>x.id===c.sessionId);
+        if(!s){s={id:c.sessionId,kind:'rec',title:'복구된 녹음',date:new Date().toLocaleString('ko-KR'),
+          chunks:[],transcript:'',complete:false,summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};ss.unshift(s);}
+        touched.add(s);
+        await transcribe(s,c.key,c.seq,c.tSec||0,c.blob,0,true,CFG.STT);
+        done++;paint();
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(3,p.length)},worker));
+    touched.forEach(s=>{if(!s.complete&&s.kind==='rec'&&!(session&&session.id===s.id&&state!=='idle')){s.complete=true;}rebuild(s);});
+    setSessions(ss);
+    if(session){const cur=ss.find(x=>x.id===session.id);if(cur&&state==='idle')session=cur;}
+    $('recovery').innerHTML=`<div class="banner info">${t4({ko:'✅ 복구 완료 — 보관함에서 확인하세요.',ja:'✅ 復元完了 — 保管庫で確認してください。',zh:'✅ 恢复完成 — 请在存档中查看。',es:'✅ Recuperación completa — revísala en el archivo.'})}</div>`;
+    renderArc();
+    if(document.getElementById('sec-std').classList.contains('on'))renderStudy();
+  }finally{retryBusy=false;}
 }
 async function dropAll(){
   if(!confirm('남은 오디오 구간을 전부 지울까요?'))return;
   const all=await getAll();
-  for(const c of all.filter(x=>x.status==='pending'||x.status==='failed'))await del(c.key).catch(()=>{});
+  for(const c of all.filter(x=>x.status==='pending'||x.status==='failed'||x.status==='part'))await del(c.key).catch(()=>{});
   $('recovery').innerHTML='';
 }
 
@@ -1828,9 +1970,132 @@ function applyUILang(lang){
   if(typeof paintAuthUI==='function'&&SRV.on)paintAuthUI();
   if(typeof recovery==='function')recovery();
   if(typeof drawQA==='function'&&session)drawQA();
+  if(typeof paintHintUI==='function'){paintHintUI();paintPadJump();paintScanUI();}
 }
-function trPrompt(langName){
-  return `강의 녹취의 한 조각이다. 자연스러운 ${langName}로 옮겨라. 설명·머리말·따옴표 없이 번역문만 출력한다. 문장이 중간에 끊겨 있어도 있는 만큼만 옮긴다. 이미 ${langName}면 그대로 출력한다. 전문용어는 ${langName} 뒤 괄호에 원어(영어)를 남긴다.`;
+/* ═══════════════════════════════════════════════════════════════════════
+   문맥 번역 엔진 (v2)
+   예전에는 문단 하나만 떼어 번역해서 "I haven't touched any things that walk on the earth"를
+   "땅 위를 걷는 어떤 것도 만지지 않았어요"처럼 글자 그대로 옮겼다 (실제 뜻: 32년간 육식을 하지 않았다).
+   이제는 번역가가 하는 순서를 그대로 따른다:
+   ① 녹취 전체의 배경(장르·화자·주제·말투)을 한 번 파악해 두고
+   ② 앞뒤 문단을 읽어 끊긴 문장·생략된 말·비유를 해석하고
+   ③ 음성인식이 잘못 들은 단어를 문맥으로 바로잡고
+   ④ 같은 용어는 끝까지 같은 말로 옮긴다(용어집).
+   모델은 먼저 <분석>에서 따져본 뒤 <번역>을 쓰고, 화면에는 번역만 보인다.
+   ═══════════════════════════════════════════════════════════════════════ */
+const TR_VER=2;                           // 이 버전보다 낮게 번역된 문단은 다시 눌렀을 때 새 방식으로 번역한다
+const briefJobs={};
+function trRegister(langName){
+  return langName==='한국어'?'자연스러운 구어체(~요 체). 강연·수업은 또렷하고 정중하게, 인터뷰·대화는 말하듯 편하게'
+    :'원문 화자의 말투와 격식 수준을 그대로 살린 자연스러운 구어체';
+}
+/* ① 녹취 전체 배경 요약 — 처음 한 번만 만들어 세션에 저장한다 */
+async function ensureBrief(lang,langName){
+  const st=session.trBrief;
+  if(st&&st.lang===lang&&st.text)return st.text;
+  const key=session.id+'|'+lang;
+  if(briefJobs[key])return briefJobs[key];
+  briefJobs[key]=(async()=>{
+    const cs=bodyChunks(session);
+    const head=cs.slice(0,6).map(c=>c.text).join(' ').slice(0,3600);
+    const mid=cs.length>14?cs.slice(Math.floor(cs.length/2),Math.floor(cs.length/2)+3).map(c=>c.text).join(' ').slice(0,1200):'';
+    const sum=(session.summary||'').slice(0,1800);
+    try{
+      const t=await llm([{role:'system',content:
+`너는 통번역가다. 아래 녹취를 ${langName}로 옮기기 전에, 번역가가 꼭 알아야 할 배경을 정리한다.
+5줄 이내, 한국어로, 다른 말 없이 아래 항목만 쓴다.
+- 종류: (강연/수업/인터뷰/토론/대화/발표 등)
+- 화자·상황: (누가 누구에게 무슨 맥락에서 말하는지, 알 수 있는 만큼)
+- 주제 분야: (구체적으로)
+- 말투: (격식/구어체/유머 등)
+- 핵심 용어·고유명사: 원어=${langName} 번역 (최대 8개, 확실한 것만)`},
+        {role:'user',content:`[제목] ${session.title||''}\n${sum?`[요약]\n${sum}\n`:''}[앞부분]\n${head}${mid?`\n[중간 일부]\n${mid}`:''}`}],
+        {temp:.1,maxTokens:500});
+      const text=(t||'').trim();
+      if(text){session.trBrief={lang,text};save(session);}
+      return text;
+    }catch(e){return '';}
+    finally{delete briefJobs[key];}
+  })();
+  return briefJobs[key];
+}
+/* 모델 출력에서 <번역>/<용어>만 꺼낸다 (태그가 빠져도 최대한 살린다) */
+function parseTr(raw){
+  let t=String(raw||'');
+  const gm=t.match(/<용어>([\s\S]*?)(<\/용어>|$)/);
+  const nm=t.match(/<번역>([\s\S]*?)(<\/번역>|<용어>|$)/);
+  let out;
+  if(nm)out=nm[1];
+  else out=t.replace(/<분석>[\s\S]*?(<\/분석>|$)/g,'').replace(/<용어>[\s\S]*$/,'');
+  out=out.replace(/<\/?(분석|번역|용어)>/g,'').trim();
+  const gl=[];
+  if(gm)gm[1].split(/[\n;]+/).forEach(l=>{
+    const m=l.replace(/^[-•\s]+/,'').match(/^(.{2,60}?)\s*=\s*(.{1,60})$/);
+    if(m)gl.push([m[1].trim(),m[2].trim()]);});
+  return {text:out,gloss:gl};
+}
+function glossFor(lang,windowText){
+  const g=((session.gloss||{})[lang])||[];
+  const low=windowText.toLowerCase();
+  const hit=g.filter(([k])=>low.includes(k.toLowerCase()));
+  const recent=g.slice(-12);
+  const seen=new Set(),out=[];
+  hit.concat(recent).forEach(x=>{if(!seen.has(x[0])){seen.add(x[0]);out.push(x);}});
+  return out.slice(0,24);
+}
+function saveGloss(lang,pairs){
+  if(!pairs.length)return;
+  session.gloss=session.gloss||{};
+  const g=session.gloss[lang]=session.gloss[lang]||[];
+  pairs.forEach(([k,v])=>{
+    const i=g.findIndex(x=>x[0].toLowerCase()===k.toLowerCase());
+    if(i===-1)g.push([k,v]);          // 먼저 정한 번역어를 유지한다 (일관성)
+  });
+  if(g.length>80)g.splice(0,g.length-80);
+}
+/* ② 한 문단을 문맥과 함께 번역 */
+async function translateWithContext(c,lang,langName){
+  const tc=bodyChunks(session).slice().sort((x,y)=>x.seq-y.seq);
+  const i=tc.findIndex(x=>x.seq===c.seq);
+  const prev=tc.slice(Math.max(0,i-2),i),next=tc.slice(i+1,i+2);
+  const own=(i>0?dedupe(tc[i-1].text,c.text):c.text)||c.text;       // 앞 문단과 겹친 꼬리는 번역하지 않는다
+  const prevTr=(i>0&&tc[i-1].ko&&tc[i-1].koLang===lang)?tc[i-1].ko:'';
+  const brief=await ensureBrief(lang,langName);
+  const gl=glossFor(lang,[prev.map(x=>x.text).join(' '),own,next.map(x=>x.text).join(' ')].join(' '));
+  const sys=`너는 강연·인터뷰·수업 현장을 담당하는 숙련된 동시통역가 겸 번역가다. 음성인식(받아쓰기) 텍스트를 ${langName}로 옮긴다.
+이 텍스트는 사람이 말한 것을 기계가 받아 적은 것이라 단어가 잘못 들렸거나, 문장이 앞뒤 문단 경계에서 끊겨 있거나, 말이 생략·반복되어 있을 수 있다.
+
+[번역 원칙]
+1. 단어를 하나씩 바꾸지 말고, **화자가 실제로 전하려는 뜻**을 옮겨라. 관용구·비유·완곡어·생략된 목적어는 문맥에서 실제 의미를 찾아 풀어서 옮긴다.
+   (예: 채식 이야기 중 "I haven't touched any animals" → 문자 그대로 "만지지 않았다"가 아니라 "동물을 먹지 않았다"는 뜻으로 옮긴다.)
+2. 음성인식 오류가 의심되면(발음이 비슷한 엉뚱한 단어, 말이 안 되는 구절) 앞뒤 문맥과 [배경]으로 가장 그럴듯한 말을 추정해 옮긴다. 확신이 없으면 무리하게 바꾸지 말고 원문에 가장 가까운 해석을 쓴다. 없는 내용을 지어내지 마라.
+3. 문맥 문단은 이해를 돕기 위한 참고용이다. **번역 대상 문단의 내용만** 번역한다. 대상 문단 첫머리가 앞 문단에서 이어지는 문장 조각이면 이어지는 말투로 자연스럽게 시작하고, 끝이 다음 문단으로 이어져 끊겨 있으면 억지로 완결하지 말고 끊긴 채 자연스럽게 마친다.
+4. 말투: ${trRegister(langName)}. "um", "you know", "yeah" 같은 군말은 뜻이 없으면 줄이되, 화자의 감정·유머·어조는 살린다.
+5. [용어집]에 있는 말은 반드시 그 번역어를 쓴다. 고유명사는 ${langName}에서 통용되는 표기를 쓰고, 전문용어는 처음 나올 때만 ${langName} 번역 뒤 괄호에 원어를 남긴다(용어집에 있으면 생략).
+6. 원문이 이미 ${langName}면 그대로 출력한다. 번역문에 설명·주석·머리말·따옴표를 붙이지 않는다.
+
+[출력 형식 — 반드시 이 순서]
+<분석>
+(6줄 이내, 한국어) 상황 파악 / 비유·생략·관용구 해석 / 음성인식 오류 의심 지점 / 문단 경계에서 끊긴 곳
+</분석>
+<번역>
+${langName} 번역문만
+</번역>
+<용어>
+원어=${langName} 번역 (이번 문단에서 새로 정한 고유명사·전문용어만, 최대 5개, 없으면 비워둔다)
+</용어>`;
+  const user=
+`${brief?`[배경]\n${brief}\n\n`:''}${gl.length?`[용어집 — 이 번역어를 그대로 쓸 것]\n${gl.map(x=>x[0]+' = '+x[1]).join('\n')}\n\n`:''}`
++`${prev.length?`[앞 문맥 — 번역하지 말고 참고만]\n${prev.map(x=>x.text.slice(-700)).join('\n')}\n\n`:''}`
++`${prevTr?`[바로 앞 문단의 번역 — 말투·용어 일관성 참고]\n${prevTr.slice(-600)}\n\n`:''}`
++`[번역 대상 문단]\n${own}\n\n`
++`${next.length?`[다음 문맥 — 번역하지 말고 참고만]\n${next.map(x=>x.text.slice(0,500)).join('\n')}`:''}`;
+  const raw=await llm([{role:'system',content:sys},{role:'user',content:user}],
+    {temp:.2,maxTokens:1800,strong:true});
+  const r=parseTr(raw);
+  if(!r.text)throw new Error('번역 결과가 비어 있습니다.');
+  saveGloss(lang,r.gloss);
+  return r.text;
 }
 /* .ko 줄은 번역 버튼 줄(.trrow) 위에 들어가야 한다 */
 function putKo(host,txt,waiting){
@@ -1851,7 +2116,7 @@ function putKo(host,txt,waiting){
    안 읽히는 문단만 골라서 눌러 한국어로 바꿔 본다. 다시 누르면 접힌다.
    ═══════════════════════════════════════════════════════════════════════ */
 function trBtn(seq,has){
-  return `<div class="trrow"><button class="trbtn${has?' on':''}" title="${TR_LANGS[trLang].name}로 번역" onclick="translateChunk(${seq},this)">
+  return `<div class="trrow"><button class="trbtn fixb" style="margin-right:6px;" title="${esc(fixTitle())}" onclick="checkMisheard(${seq},this)"><span style="font-size:14px;">🔎</span></button><button class="trbtn re" style="${has?'':'display:none;'}margin-right:6px;font-size:15px;font-weight:800;" title="${esc(trReTitle())}" onclick="translateChunk(${seq},this,true)">↻</button><button class="trbtn${has?' on':''}" title="${TR_LANGS[trLang].name}로 번역" onclick="translateChunk(${seq},this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="17 1 21 5 17 9"></polyline>
       <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
@@ -1859,32 +2124,180 @@ function trBtn(seq,has){
       <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
     </svg></button></div>`;
 }
-async function translateChunk(seq,btn){
+function fixTitle(){return t4({ko:'오인식 점검 — 문맥상 이상한 단어를 찾아 후보를 제시',ja:'誤認識チェック — 文脈に合わない単語を探して候補を提示',zh:'误识别检查 — 找出与上下文不符的词并给出候选',es:'Revisar errores — busca palabras raras según el contexto y propone alternativas'});}
+function trReTitle(){return {ko:'문맥을 다시 보고 재번역',ja:'文脈を見直して再翻訳',zh:'结合上下文重新翻译',es:'Retraducir con contexto'}[trLang]||'Retranslate';}
+async function translateChunk(seq,btn,force){
   const cs=(session&&session.chunks)||[];
   const c=cs.find(x=>x.seq===seq);
   if(!c||!c.text)return;
   const host=btn.closest('.ck')||btn.closest('.tline');
-  if(c.ko&&c.koLang===trLang){               // 같은 언어로 이미 번역돼 있으면 보이기/숨기기만
+  const main=host&&host.querySelector('.trbtn:not(.re):not(.fixb)')||btn;
+  const fresh=c.ko&&c.koLang===trLang&&c.koV===TR_VER;
+  if(fresh&&!force){                         // 새 방식으로 이미 번역돼 있으면 보이기/숨기기만
     const el=host&&host.querySelector('.ko');
-    if(el){el.remove();btn.classList.remove('on');}
-    else{putKo(host,c.ko,false);btn.classList.add('on');}
+    if(el){el.remove();main.classList.remove('on');}
+    else{putKo(host,c.ko,false);main.classList.add('on');}
     return;
   }
   if(needKey())return;
-  btn.classList.add('busy');
+  btn.classList.add('busy');main.classList.add('busy');
   putKo(host,'',true);
   const lang=trLang,langName=TR_LANGS[lang].name;
   try{
-    const t=await llm([{role:'system',content:trPrompt(langName)},
-      {role:'user',content:c.text}],{temp:.2,maxTokens:900});
-    c.ko=(t||'').trim();c.koLang=lang;
+    const t=await translateWithContext(c,lang,langName);
+    c.ko=t;c.koLang=lang;c.koV=TR_VER;
     if(session)save(session);
-    putKo(host,c.ko,false);btn.classList.add('on');
+    putKo(host,c.ko,false);main.classList.add('on');
+    const re=host&&host.querySelector('.trbtn.re');if(re)re.style.display='';
   }catch(e){
-    const el=host&&host.querySelector('.ko');if(el)el.remove();
+    const el=host&&host.querySelector('.ko');
+    if(el&&!c.ko)el.remove();else if(el)putKo(host,c.ko,false);
     alert('번역 실패: '+e.message);
-  }finally{btn.classList.remove('busy');}
+  }finally{btn.classList.remove('busy');main.classList.remove('busy');}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   오인식 점검 (🔎)
+   음성인식은 발음이 비슷한 엉뚱한 단어로 받아 적을 때가 있다 (gerund → germs).
+   소리는 이미 글자가 되어 버렸으니, 문맥(강의 주제·앞뒤 문단)을 보고
+   "여기서 이 단어는 말이 안 된다 → 발음이 비슷하면서 문맥에 맞는 건 이것" 을 추정해 후보로 제시한다.
+   적용하면 그 단어는 용어 힌트에 자동으로 들어가, 이후 받아쓰기에서는 처음부터 맞게 나온다.
+   ═══════════════════════════════════════════════════════════════════════ */
+const escRe=x=>String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function fixWordRe(w){return new RegExp('(^|[^A-Za-z0-9가-힣])('+escRe(w).replace(/\s+/g,'\\s+')+')(?![A-Za-z0-9가-힣])','gi');}
+async function findMisheard(c){
+  const lang=trLang,langName=TR_LANGS[lang].name;
+  const tc=bodyChunks(session).slice().sort((x,y)=>x.seq-y.seq);
+  const i=tc.findIndex(x=>x.seq===c.seq);
+  const prev=tc.slice(Math.max(0,i-2),i),next=tc.slice(i+1,i+2);
+  const brief=await ensureBrief(lang,langName);
+  const known=(session.terms||[]).slice(0,40);
+  const sys=`너는 영어 강의 음성인식(Whisper) 결과를 교정하는 전문가다. [대상 문단]에서, 음성인식이 **발음이 비슷한 엉뚱한 단어로 잘못 받아 적었을 가능성이 높은 단어·구**를 찾아라.
+
+판단 방법:
+1. [배경]과 앞뒤 문맥으로 이 대목의 주제를 먼저 파악한다 (예: 영어 문법 수업, 의학 강의, 경제학 등).
+2. 그 주제에 비해 **어색하거나 뜻이 안 통하는** 단어를 찾는다. (예: 문법 수업에서 to부정사와 함께 갑자기 나온 "germs(세균)")
+3. 그 단어와 **발음이 비슷하면서 문맥에 맞는** 후보를 고른다. (예: germs [dʒɜːrmz] ≈ gerund [dʒɜːrənd] / "in finitive"·"infinity of" ≈ infinitive / "to infinitive" ≈ to-infinitive)
+4. 한 단어가 여러 단어로 쪼개져 들린 경우, 여러 단어가 한 단어로 뭉친 경우도 찾는다.
+5. [알려진 용어]나 앞뒤 문단에 이미 올바른 표기가 있으면 그것을 1순위 후보로 삼는다.
+
+규칙:
+- 문맥에 맞는 정상적인 단어는 절대 고치지 마라. 확신이 없으면 빈 목록으로 답한다. 최대 6개.
+- heard는 [대상 문단]에 **실제로 있는 글자 그대로** 복사한다 (대소문자·철자 포함, 여러 단어면 띄어쓰기도 그대로).
+- options는 가능성 높은 순서로 1~3개. 전문용어·고유명사는 정확한 철자로.
+- reason은 한국어 25자 이내 (왜 그렇게 판단했는지).
+- conf는 0~1 (확신도).
+JSON으로만 답한다: {"items":[{"heard":"germs","options":["gerund","gerunds"],"reason":"문법 수업 문맥(동명사)과 발음 유사","conf":0.9}]}`;
+  const user=`${brief?`[배경]\n${brief}\n\n`:''}${known.length?`[알려진 용어]\n${known.join(', ')}\n\n`:''}`
+    +`${prev.length?`[앞 문맥]\n${prev.map(x=>x.text.slice(-600)).join('\n')}\n\n`:''}[대상 문단]\n${c.text}\n\n`
+    +`${next.length?`[다음 문맥]\n${next.map(x=>x.text.slice(0,400)).join('\n')}`:''}`;
+  const raw=await llm([{role:'system',content:sys},{role:'user',content:user}],{temp:.1,maxTokens:900,json:true,strong:true});
+  let j;try{j=JSON.parse(raw);}catch(e){j=parseLoose(raw,'heard')||{};}
+  const out=[];
+  (j.items||j.fixes||[]).forEach(it=>{
+    const heard=String((it&&it.heard)||'').trim();
+    const opts=(Array.isArray(it&&it.options)?it.options:[]).map(x=>String(x).trim()).filter(x=>x&&x.length<=40&&x.toLowerCase()!==heard.toLowerCase()).slice(0,3);
+    if(!heard||!opts.length||(+it.conf||0)<.5)return;
+    if(!fixWordRe(heard).test(c.text))return;                     // 실제 문단에 없는 글자는 버린다
+    if(out.some(o=>o.heard.toLowerCase()===heard.toLowerCase()))return;
+    out.push({heard,options:opts,reason:String(it.reason||'').slice(0,50),conf:+it.conf||0});
+  });
+  return out.slice(0,6);
+}
+function fixBoxHtml(c){
+  if(!c.fixChecked)return '';
+  const L=(c.fixes||[]);
+  const yes=t4({ko:'이 문단',ja:'この段落',zh:'本段',es:'Este'}),all=t4({ko:'전체',ja:'全体',zh:'全部',es:'Todo'});
+  const body=L.length?L.map((f,i)=>`<div class="fixit"><span class="fx-h">${esc(f.heard)}</span><span>→</span>`
+    +f.options.map((o,j)=>`<span class="fx-opt">${esc(o)}<button onclick="applyFix(${c.seq},${i},${j},false)">${yes}</button><button class="fx-all" onclick="applyFix(${c.seq},${i},${j},true)">${all}</button></span>`).join('')
+    +(f.reason?`<span class="fx-r">${esc(f.reason)}</span>`:'')
+    +`<button class="fx-x" onclick="dismissFix(${c.seq},${i})">✕</button></div>`).join('')
+    :`<span class="fx-none">${t4({ko:'문맥상 이상한 단어를 찾지 못했어요.',ja:'文脈上おかしな単語は見つかりませんでした。',zh:'没有发现与上下文不符的词。',es:'No se encontraron palabras sospechosas.'})}</span>`;
+  return `<div class="fixbox">${body}</div>`;
+}
+function paintFix(c){
+  document.querySelectorAll('.ck,.tline').forEach(h=>{
+    const b=h.querySelector('.trbtn.fixb');if(!b)return;
+    if((b.getAttribute('onclick')||'').indexOf('checkMisheard('+c.seq+',')===-1)return;
+    const old=h.querySelector('.fixbox');if(old)old.remove();
+    const html=fixBoxHtml(c);if(!html)return;
+    const row=h.querySelector('.trrow');
+    if(row)row.insertAdjacentHTML('beforebegin',html);else h.insertAdjacentHTML('beforeend',html);
+  });
+}
+async function checkMisheard(seq,btn){
+  const c=((session&&session.chunks)||[]).find(x=>x.seq===seq);
+  if(!c||!c.text)return;
+  if(needKey())return;
+  btn.classList.add('busy');
+  try{
+    c.fixes=await findMisheard(c);c.fixChecked=true;
+    if(session)save(session);
+    paintFix(c);
+  }catch(e){alert(t4({ko:'점검 실패: ',ja:'チェック失敗: ',zh:'检查失败: ',es:'Error al revisar: '})+e.message);}
+  finally{btn.classList.remove('busy');}
+}
+function dismissFix(seq,i){
+  const c=session.chunks.find(x=>x.seq===seq);if(!c||!c.fixes)return;
+  c.fixes.splice(i,1);if(!c.fixes.length)c.fixChecked=true;
+  save(session);paintFix(c);
+}
+function replaceWord(text,heard,rep){
+  return text.replace(fixWordRe(heard),(m,pre,w)=>{
+    let r=rep;
+    if(/^[A-Z]/.test(w)&&/^[a-z]/.test(r)&&!/[A-Z]/.test(r.slice(1)))r=r[0].toUpperCase()+r.slice(1);   // 문장 첫 글자 대문자 유지
+    return pre+r;});
+}
+function applyFix(seq,i,j,all){
+  const c=session.chunks.find(x=>x.seq===seq);if(!c||!c.fixes||!c.fixes[i])return;
+  const f=c.fixes[i],rep=f.options[j];
+  const targets=all?session.chunks.filter(x=>x.text):[c];
+  let n=0;
+  targets.forEach(x=>{
+    const t=replaceWord(x.text,f.heard,rep);
+    if(t!==x.text){x.text=t;n++;delete x.koV;                 // 글이 바뀌었으니 번역은 다시 누르면 새로 만든다
+      if(x.fixes)x.fixes=x.fixes.filter(y=>y.heard.toLowerCase()!==f.heard.toLowerCase());}
+  });
+  c.fixes=(c.fixes||[]).filter(y=>y.heard.toLowerCase()!==f.heard.toLowerCase());
+  if(!/\s/.test(rep)||rep.split(/\s+/).length<=3){                // 고친 말은 용어 힌트에 넣어 다음 받아쓰기부터 맞게 나오게 한다
+    session.terms=session.terms||[];
+    if(!session.terms.some(w=>w.toLowerCase()===rep.toLowerCase()))session.terms.push(rep);
+  }
+  rebuild(session);save(session);
+  targets.forEach(x=>{const d=document.getElementById('ck-'+x.seq);const tx=d&&d.querySelector('.tx');if(tx&&!d.classList.contains('fail'))tx.innerText=x.text;});
+  if(document.getElementById('sec-std').classList.contains('on'))drawFull();else paintFix(c);
+  const st=$('scanStat');if(st&&all)st.innerText=t4({ko:`"${f.heard}" → "${rep}" ${n}곳 수정`,ja:`"${f.heard}" → "${rep}" ${n}か所修正`,zh:`"${f.heard}" → "${rep}" 已修改 ${n} 处`,es:`"${f.heard}" → "${rep}" ${n} cambios`});
+}
+function paintScanUI(){
+  const b=$('scanBtn');if(!b||b.disabled)return;
+  b.innerText='🔎 '+t4({ko:'전체 오인식 점검',ja:'全体の誤認識チェック',zh:'全文误识别检查',es:'Revisar toda la clase'});
+}
+async function scanAllMisheard(){
+  if(!session||scanBusy)return;
+  if(needKey())return;
+  const todo=bodyChunks(session).filter(c=>!c.fixChecked);
+  if(!todo.length){alert(t4({ko:'모든 문단을 이미 점검했어요.',ja:'すべての段落をチェック済みです。',zh:'所有段落都已检查过。',es:'Ya se revisaron todos los párrafos.'}));return;}
+  if(!confirm(t4({ko:`${todo.length}개 문단을 점검합니다. 문단마다 AI를 한 번씩 부르므로 몇 분 걸릴 수 있어요. 진행할까요?`,ja:`${todo.length} 個の段落をチェックします。段落ごとにAIを呼ぶため数分かかることがあります。続けますか？`,zh:`将检查 ${todo.length} 个段落。每段都会调用一次 AI，可能需要几分钟。继续吗？`,es:`Se revisarán ${todo.length} párrafos. Cada uno llama a la IA una vez y puede tardar unos minutos. ¿Continuar?`})))return;
+  scanBusy=true;const b=$('scanBtn'),st=$('scanStat');b.disabled=true;
+  let done=0,found=0,idx=0;const total=todo.length,sid=session.id;
+  const upd=()=>{st.innerText=`${done}/${total} · ${t4({ko:'의심 단어',ja:'要確認',zh:'可疑词',es:'sospechosas'})} ${found}`;};
+  upd();
+  async function worker(){
+    while(idx<total){
+      const c=todo[idx++];
+      try{c.fixes=await findMisheard(c);c.fixChecked=true;found+=c.fixes.length;}catch(e){/* 실패한 문단은 건너뛴다 */}
+      done++;upd();
+    }
+  }
+  try{await Promise.all([worker(),worker(),worker()]);}
+  finally{
+    scanBusy=false;b.disabled=false;paintScanUI();
+    if(session&&session.id===sid){save(session);drawFull();}
+    st.innerText=t4({ko:`점검 완료 — 의심 단어 ${found}개 (노란 칸에서 골라 적용하세요)`,ja:`チェック完了 — 要確認 ${found} 件（黄色い欄から選んで適用）`,zh:`检查完成 — 可疑词 ${found} 个（在黄色框中选择并应用）`,es:`Revisión completa — ${found} sospechosas (elige en el cuadro amarillo)`});
+  }
+}
+let scanBusy=false;
 
 /* ═══════════════════════════════════════════════════════════════════════
    요약
@@ -3161,14 +3574,32 @@ function drawGame(){
 /* ═══════════════════════════════════════════════════════════════════════
    학습 화면
    ═══════════════════════════════════════════════════════════════════════ */
+async function renderStudyEmpty(){
+  const box=$('stdEmpty');box.style.display='block';$('stdBody').style.display='none';
+  if(!session){box.innerHTML=(UI_STRINGS[trLang]||UI_STRINGS.ko).stdEmpty;return;}
+  const sid=session.id;
+  if(state!=='idle'&&sid===session.id&&!session.complete){
+    box.innerHTML=t4({ko:'🎙 녹음 중이에요.<br>받아쓰기가 쌓이면 여기서 요약·질문을 쓸 수 있어요.',ja:'🎙 録音中です。<br>書き起こしがたまると、ここで要約や質問が使えます。',zh:'🎙 正在录音。<br>转写内容积累后即可在此使用摘要和提问。',es:'🎙 Grabando.<br>Cuando se acumule la transcripción podrás usar el resumen y las preguntas aquí.'});
+    return;
+  }
+  let n=0;try{n=(await getAll()).filter(c=>c.sessionId===sid&&(c.status==='pending'||c.status==='failed'||c.status==='part')).length;}catch(e){}
+  if(!session||session.id!==sid)return;
+  const delBtn=`<button class="btn btn-gray btn-sm" style="width:auto;padding:0 16px;margin-top:12px;" onclick="delSession('${sid}')">🗑️ ${t4({ko:'이 기록 삭제',ja:'この記録を削除',zh:'删除此记录',es:'Eliminar este registro'})}</button>`;
+  if(n>0){
+    box.innerHTML=t4({ko:`이 녹음은 중간에 끊겨서 아직 받아쓰지 못한 소리가 ${n}구간 남아 있어요.`,ja:`この録音は途中で中断され、まだ書き起こしていない音声が ${n} 区間残っています。`,zh:`这段录音中途中断，还有 ${n} 段声音尚未转写。`,es:`Esta grabación se interrumpió y quedan ${n} tramos de audio sin transcribir.`})
+      +`<br><button class="btn btn-blue btn-sm" style="width:auto;padding:0 16px;margin-top:12px;" onclick="retryAll();">🔁 ${t4({ko:'지금 받아쓰기',ja:'今すぐ書き起こす',zh:'立即转写',es:'Transcribir ahora'})}</button> `+delBtn;
+  }else{
+    box.innerHTML=t4({ko:'이 기록에는 받아쓴 내용이 없어요.<br>녹음을 시작하고 아주 짧은 시간 안에 창이 닫혀서, 저장된 소리가 없는 경우예요.',ja:'この記録には書き起こした内容がありません。<br>録音開始直後にウィンドウが閉じられ、保存された音声がない場合です。',zh:'此记录没有转写内容。<br>可能是录音刚开始不久窗口就被关闭，没有保存下声音。',es:'Este registro no tiene texto.<br>Probablemente la ventana se cerró justo al empezar a grabar y no se guardó audio.'})+'<br>'+delBtn;
+  }
+}
 function renderStudy(){
-  if(!session||!(session.transcript||'').trim()){$('stdEmpty').style.display='block';$('stdBody').style.display='none';return;}
+  if(!session||!(session.transcript||'').trim()){renderStudyEmpty();return;}
   $('stdEmpty').style.display='none';$('stdBody').style.display='block';
   $('stdTitle').innerText=session.title||'제목 없음';
   const n=bodyChunks(session).length;
   $('stdMeta').innerText=`${session.kind==='text'?'붙여넣은 텍스트':'녹음'} · ${(session.transcript||'').length.toLocaleString()}자 · ${n}구간`
     +(session.duration?` · ${fmt(session.duration)}`:'');
-  drawSummary();drawQA();drawQuiz();drawVocab();drawFull();paintStdPane();
+  drawSummary();drawQA();drawQuiz();drawVocab();drawFull();paintStdPane();paintScanUI();
 }
 function paintStdPane(){
   $('segStd').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===stdPane));
@@ -3178,7 +3609,7 @@ function drawFull(){
   const cs=bodyChunks(session);
   $('fullArea').innerHTML=cs.length?cs.map(c=>
     `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}`
-    +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+trBtn(c.seq,!!c.ko)+`</div>`).join('')
+    +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+fixBoxHtml(c)+trBtn(c.seq,!!c.ko)+`</div>`).join('')
     :'<div class="empty">내용이 없습니다.</div>';
 }
 function jumpTo(k){
@@ -3255,6 +3686,7 @@ function openArc(id){
   const s=sessions().find(x=>x.id===id);if(!s)return;
   s.qa=s.qa||[];s.suggested=s.suggested||[];s.followups=s.followups||[];s.quiz=s.quiz||null;
   session=s;stdPane='sum';vocHidden=false;goTab('std');
+  if(!s.complete&&s.kind==='rec'&&state==='idle'&&hasAuth())recovery(true);   // 남은 소리가 있으면 바로 이어서 받아쓴다
 }
 function delSession(id){
   if(!confirm('이 기록을 삭제할까요? 복구할 수 없습니다.'))return;
