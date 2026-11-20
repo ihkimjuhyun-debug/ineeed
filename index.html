@@ -464,6 +464,15 @@ body.recfocus .hdr{display:none;}
 #sec-rec.focus .timer{font-size:30px;}
 #sec-rec.focus .status{margin-bottom:8px;}
 #sec-rec.focus .pad{max-height:none;height:calc(100vh - 400px);min-height:240px;}
+.vopts{margin:8px 0;border:1px solid var(--cardline,#e5e5ea);border-radius:10px;overflow:hidden}
+.vo{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;line-height:1.45;border-top:1px solid var(--cardline,#e5e5ea)}
+.vo:first-child{border-top:0}
+.vo .vn{flex:0 0 1.4em;font-weight:700;text-align:right}
+.vo .vm{flex:0 0 1.6em;height:1.6em;line-height:1.6em;text-align:center;border-radius:6px;font-weight:800;font-size:.85em}
+.vo.o{background:rgba(52,199,89,.12)}.vo.o .vm{background:#34c759;color:#fff}
+.vo.x .vm{background:rgba(142,142,147,.25);color:var(--mut,#8e8e93)}
+.vo.x .vt{color:var(--mut,#6b6b70)}
+.vo .vt{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -2606,7 +2615,29 @@ async function makeSummary(){
   finally{b.disabled=false;b.innerText=session&&session.summary?'🔄 요약 다시 만들기':'🤖 요약 만들기';}
 }
 function citeHtml(md){
-  const html=(typeof marked!=='undefined')?marked.parse(md||''):esc(md||'').replace(/\n/g,'<br>');
+  const lines=String(md||'').split('\n');
+  const V=/^\s*(?:[-*]\s+)?(?:\*\*)?(\d{1,2})(?:\*\*)?\s*[.)]?\s+(?:\*\*)?([OX○×ⅩＯ])(?:\*\*)?(?=[\s:：—-]|$)\s*[:：]?\s*(.*)$/;
+  const L=/^\s*(\d{1,2})\s*[.)]\s+(.+?)\s*[—–-]{1,2}\s*\**([OX○×])\**\s*[:：]\s*(.*)$/;
+  const pv=ln=>{let m=ln.match(V);if(m)return{n:m[1],ok:/[OＯ○]/.test(m[2]),t:m[3]};
+    m=ln.match(L);if(m)return{n:m[1],ok:/[O○]/.test(m[3]),t:m[2]+' — '+m[4]};return null;};
+  const out=[];let buf=[],rows=[];
+  const flushText=()=>{if(buf.length){out.push(mdCite(buf.join('\n')));buf=[];}};
+  const flushRows=()=>{
+    if(rows.length>=2){flushText();
+      out.push('<div class="vopts">'+rows.map(r=>`<div class="vo ${r.ok?'o':'x'}"><span class="vn">${esc(r.n)}</span><span class="vm">${r.ok?'O':'X'}</span><span class="vt">${mdCite(r.t,true)}</span></div>`).join('')+'</div>');
+    }else rows.forEach(r=>buf.push(r.raw));
+    rows=[];
+  };
+  lines.forEach(ln=>{const v=pv(ln);
+    if(v){v.raw=ln;rows.push(v);}
+    else if(rows.length&&!ln.trim()){/* 보기 줄 사이 빈 줄은 무시 */}
+    else{flushRows();buf.push(ln);}
+  });
+  flushRows();flushText();
+  return out.join('');
+}
+function mdCite(md,inline){
+  const html=(typeof marked!=='undefined')?(inline&&marked.parseInline?marked.parseInline(md||''):marked.parse(md||'')):esc(md||'').replace(/\n/g,'<br>');
   return html.replace(/\[((?:\d{1,2}:)?\d{1,2}:\d{2}|단락\s*\d+)\]/g,
     (m,k)=>`<button class="cite" data-k="${esc(k.replace(/단락\s*/,'단락 '))}">${esc(k)}</button>`);
 }
@@ -2905,22 +2936,37 @@ async function ask(forceQ,baseIdx){
 이 질문이 보기를 고르는 문제가 아니면(개념 질문 등) 이 절차는 무시하고 평소처럼 답한다.
 
 [1단계] 답변 맨 앞에 <분석> ... </분석> 블록을 쓴다. 학생에게는 보이지 않는 채점 메모이므로 길어도 된다. 안에 순서대로:
- (가) 보기 옮겨 적기 — 문제에 인쇄된 번호 그대로 보기를 한 줄씩 옮긴다. 사진이면 눈에 보이는 글자 그대로. 번호를 새로 매기거나 순서를 바꾸지 않는다.
+ (가) 보기 옮겨 적기 — 문제에 인쇄된 번호 그대로 한 줄씩 옮긴다(사진이면 보이는 글자 그대로). 번호가 인쇄돼 있으면 새로 매기거나 순서를 바꾸지 않는다.
+   · 붙여넣기 때문에 줄바꿈·번호가 사라져 보기들이 한 줄로 이어져 있으면, 문장 구조와 대문자 시작·마침표·병렬 구조를 보고 보기 경계를 복원해 **등장 순서대로 1,2,3,…** 번호를 매긴다. 문제에 ①②③④ / a b c d / A B C D / 가나다라가 있으면 그것을 1,2,3,4로 대응시킨다. 번호 매긴 결과를 분석에 적는다.
  (나) 선택 방식 판정 — 문제에 아래 문구가 **실제로 적혀 있는지** 확인하고, 있으면 그 문구를 인용한다.
    · 개수 지정: "2개 고르시오", "choose two", "select 3" → 정확히 그 개수
    · 모두 선택: "모두 고르시오", "해당하는 것을 모두", "all that apply", "select all", 보기 앞의 네모 체크박스 → 맞는 것 전부(1개일 수도 있다)
    · 위 문구가 없으면 → 정답 하나 (보기가 비슷하거나 그럴듯한 게 여러 개라는 이유만으로 복수 정답으로 보지 마라)
- (다) 보기별 판정 — 각 보기를 다른 보기와 따로 떼어, 강의 원문(없으면 일반 지식)을 근거로 "참/거짓"과 이유 한 줄을 쓴다.
-   · "'b'와 'd'의 조합", "both A and C", "위 모두", "정답 없음" 같은 보기는 다른 보기 판정을 모두 끝낸 뒤 맨 마지막에 판정한다 (가리키는 보기들이 실제로 참일 때만 참).
- (라) 최종 결정
-   · 개수 지정 → 참인 보기 중 가장 확실한 N개. 참인 보기 수가 N과 다르면 (다)를 다시 검토한다.
+ (다) 보기 종류 분류 — 각 보기를 둘 중 하나로 분류한다.
+   · 진술형: 그 자체로 참/거짓을 따질 수 있는 내용 ("The Senate was ...")
+   · 메타형: 다른 보기를 가리키는 보기 ("1~2번 맞음", "1, 2 모두", "위 모두", "①과 ③", "both A and C", "전부 다 아님", "정답 없음", "none of the above", "all of the above")
+ (라) 진술형 보기 판정 — 각 보기를 다른 보기와 따로 떼어, 강의 원문(없으면 일반 지식)을 근거로 "참/거짓"과 이유 한 줄을 쓴다. 질문이 "옳지 않은 것"을 묻는지(부정형)도 확인해 뒤집어 적용한다.
+ (마) 메타형 보기 판정 — 진술형 판정을 **모두 끝낸 뒤에** 맨 마지막에 한다. 아래 두 가지를 혼동하지 마라.
+   · "이 보기의 내용이 사실인가?"가 아니라 "이 보기를 선택하는 것이 올바른가?"를 따진다.
+   · "1~2번 맞음" → 1번과 2번이 **둘 다 참**이고 (필요하면 다른 진술형도 참이 아닐 때) 참이면 그 보기가 정답. 하나라도 거짓이면 오답.
+   · "전부 다 아님/정답 없음/none of the above" → 진술형이 **전부 거짓**일 때만 정답. 하나라도 참이 있으면 오답.
+   · "위 모두/all of the above" → 나머지 진술형이 전부 참일 때만 정답.
+   · 메타형이 정답이 되면, 그 메타형이 가리킨 진술형 보기들은 **정답으로 표시하지 않는다**(정답은 메타형 번호 하나).
+   · 메타형이 참인 상황에서도 진술형 단독 보기보다 메타형이 더 완전하므로 정답은 메타형이다.
+ (바) 최종 결정
+   · 개수 지정 → 참인 보기 중 가장 확실한 N개. 참인 보기 수가 N과 다르면 (라)를 다시 검토한다.
    · 모두 선택 → 참인 보기 전부.
-   · 정답 하나 → 참인 보기가 하나면 그것. 참으로 보이는 게 여럿이면 질문이 묻는 바에 가장 직접적이고 완전하게 답하는 **하나만**. 개별 보기들이 각각 불완전하고 조합형 보기가 그 둘을 합치면 완전해지면 조합형 보기가 정답이다.
+   · 정답 하나 → 위 규칙으로 하나만.
    · 마지막 줄에 최종정답=[번호들] 로 적는다.
 
 [2단계] </분석> 뒤에 학생에게 보이는 답변을 쓴다.
- - 첫 줄: "정답: N번" (복수면 "정답: 2번, 3번"). **분석의 최종정답과 정확히 일치**해야 한다.
- - 이어서 모든 보기를 번호순으로 한 줄씩 "번호. (보기 요약) — O 또는 X : 이유 한 문장". O가 붙은 번호는 첫 줄의 정답과 정확히 같아야 한다.
+ - 첫 줄: "정답: N번" (복수면 "정답: 2번, 4번"). **분석의 최종정답과 정확히 일치**해야 한다.
+ - 이어서 모든 보기를 번호순으로 한 줄씩, **줄 맨 앞에 번호와 O/X**를 쓴다. 형식은 정확히:
+   1 O 보기 요약 — 이유 한 문장
+   2 X 보기 요약 — 이유 한 문장
+   · 번호 뒤에 "." 나 ")" 를 붙이지 말고, "1." 같은 목록 문법·"-"·"*"·굵게 표시도 쓰지 마라. 줄은 반드시 숫자로 시작한다.
+   · O는 "이 번호를 선택한다(정답)", X는 "선택하지 않는다"이다. O가 붙은 번호는 첫 줄의 정답과 **정확히 같아야** 한다.
+   · 메타형 보기도 같은 형식으로 쓰고 이유에 어떤 번호가 참/거짓이라 이렇게 판정했는지 적는다.
  - 그다음 근거 위치 표시 등 평소 형식.
 `:'';
 
@@ -2964,9 +3010,29 @@ ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
     let a=null,lastErr=null;
     for(let t=0;t<2;t++){                 // 인터넷이 잠깐 끊긴 정도면 스스로 한 번 더 시도
       try{
-        a=await llm([{role:'system',content:sys},{role:'user',content:userContent}],
-          {temp:needAnalysis?.1:.2,maxTokens:needAnalysis?3200:(isChoice||deepen?1800:1200),strong:needAnalysis});
-        a=stripAnalysis(a);
+        const call=(tp)=>llm([{role:'system',content:sys},{role:'user',content:userContent}],
+          {temp:tp,maxTokens:needAnalysis?3200:(isChoice||deepen?1800:1200),strong:needAnalysis});
+        if(needAnalysis){
+          /* 객관식은 한 번 풀면 흔들리므로 3번 따로 풀어 다수결로 정한다 */
+          const rs=(await Promise.allSettled([call(.1),call(.5),call(.5)])).filter(r=>r.status==='fulfilled').map(r=>r.value);
+          if(!rs.length)throw new Error('network');
+          const setOf=x=>{const m=String(x).match(/최종정답\s*=\s*\[([^\]]*)\]/);
+            return m?(m[1].match(/\d+/g)||[]).map(Number).sort((p,q)=>p-q).join(','):'';};
+          const cnt={};rs.forEach(x=>{const k=setOf(x);if(k)cnt[k]=(cnt[k]||0)+1;});
+          let best='',bc=0;Object.keys(cnt).forEach(k=>{if(cnt[k]>bc){best=k;bc=cnt[k];}});
+          let pick=rs.find(x=>setOf(x)===best)||rs[0];
+          /* 보이는 답의 "정답:" 줄과 O 표시가 분석 결론과 같은지 검사 */
+          const vis=stripAnalysis(pick);
+          const head=(vis.match(/^\s*정답\s*[:：]\s*([^\n]*)/m)||[])[1]||'';
+          const hs=(head.match(/\d+/g)||[]).map(Number).sort((p,q)=>p-q).join(',');
+          if(best&&hs&&hs!==best){
+            const alt=rs.find(x=>setOf(x)===best&&(((stripAnalysis(x).match(/^\s*정답\s*[:：]\s*([^\n]*)/m)||[])[1]||'').match(/\d+/g)||[]).sort((p,q)=>p-q).join(',')===best);
+            if(alt)pick=alt;
+          }
+          a=stripAnalysis(pick);
+        }else{
+          a=stripAnalysis(await call(.2));
+        }
         break;
       }catch(err){
         lastErr=err;
