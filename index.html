@@ -473,6 +473,14 @@ body.recfocus .hdr{display:none;}
 .vo.x .vm{background:rgba(142,142,147,.25);color:var(--mut,#8e8e93)}
 .vo.x .vt{color:var(--mut,#6b6b70)}
 .vo .vt{flex:1;min-width:0}
+.matdrop{border:2px dashed var(--bd-d1d1d6,#c7c7cc);border-radius:14px;padding:22px 14px;text-align:center;cursor:pointer;transition:.15s}
+.matdrop.on{border-color:var(--blue,#007aff);background:rgba(0,122,255,.07)}
+.figph{display:block;margin:10px 0}
+.figrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.figrow img{max-height:280px;max-width:100%;border-radius:10px;border:1px solid var(--cardline,#e5e5ea);cursor:zoom-in;background:#fff;flex:0 0 auto}
+.figcap{font-size:11px;color:var(--mut,#8e8e93);font-weight:700;margin-top:4px}
+#figZoom{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;cursor:zoom-out}
+#figZoom img{max-width:100%;max-height:100%;background:#fff;border-radius:6px}
 </style>
 </head>
 <body>
@@ -597,6 +605,17 @@ body.recfocus .hdr{display:none;}
 
   <!-- ═══════════ 텍스트 붙여넣기 ═══════════ -->
   <div id="sec-txt" class="sec">
+    <div class="card">
+      <div class="lbl">📎 자료 통째로 학습 (그림 포함)</div>
+      <div class="matdrop" id="matDrop" onclick="document.getElementById('matFile').click()">
+        <div style="font-size:30px;line-height:1;">📄🖼️</div>
+        <div style="font-weight:800;margin-top:8px;">PDF · PPT · 이미지 · 워드 · 텍스트 파일을<br>여기로 끌어다 놓으세요</div>
+        <div class="tip c" style="margin-top:6px;">글자와 그림을 함께 읽어서, 질문하면 해당 그림을 보여주고 그림 정보까지 정리해 드립니다. (여러 파일 가능 · 클릭해서 선택도 가능)</div>
+        <label onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center;justify-content:center;margin-top:10px;font-size:12.5px;font-weight:800;"><input type="checkbox" id="matAll" checked> 꼼꼼 모드 — PDF는 모든 쪽을 이미지로 저장하고 전부 읽기 (비용↑, 가장 확실)</label>
+        <div id="matMsg" class="tip c" style="margin-top:8px;font-weight:800;display:none;"></div>
+      </div>
+      <input type="file" id="matFile" multiple accept=".pdf,.pptx,.docx,.png,.jpg,.jpeg,.webp,.gif,.txt,.md,.srt,.vtt,image/*,application/pdf" style="display:none;" onchange="matPick(this.files);this.value=''">
+    </div>
     <div class="card">
       <div class="lbl" data-i18n="txtTitleLabel">제목 (선택)</div>
       <input type="text" id="txtTitle" class="inp" data-i18n-ph="txtTitlePh" placeholder="예: 9/3 지구과학 1강">
@@ -1733,6 +1752,205 @@ function textToChunks(txt){
   if(!out.length&&txt.trim())out.push({seq:0,para:1,text:txt.trim()});
   return out;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   자료 통째로 학습 (PDF · PPTX · DOCX · 이미지 · 텍스트)
+   - 페이지(슬라이드)마다 글자를 뽑고, 그림이 있는 페이지는 이미지를 IndexedDB에 보관
+   - 비전 모델이 그림을 읽어 "그림 설명"을 글로 만들어 본문에 붙인다 → 요약·질문·문제가 그림 내용까지 알게 됨
+   - 답변에 [그림 단락 N] 이 나오면 그 자리에 실제 그림을 띄운다
+   ═══════════════════════════════════════════════════════════════════════ */
+const LIB={pdf:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  pdfw:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  zip:'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'};
+const _ld={};
+function loadScript(u){return _ld[u]||(_ld[u]=new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>{delete _ld[u];no(new Error('라이브러리를 불러오지 못했습니다(인터넷 확인): '+u.split('/').pop()));};document.head.appendChild(e);}));}
+async function getOne(k){const d=await db();return new Promise((r,j)=>{const q=d.transaction(ST,'readonly').objectStore(ST).get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
+function blobToDataURL(b){return new Promise((r,j)=>{const f=new FileReader();f.onload=()=>r(f.result);f.onerror=()=>j(f.error);f.readAsDataURL(b);});}
+async function toJpeg(blob,maxW,q){
+  const bm=await createImageBitmap(blob);const sc=Math.min(1,maxW/bm.width);
+  const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bm.width*sc));cv.height=Math.max(1,Math.round(bm.height*sc));
+  const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(bm,0,0,cv.width,cv.height);
+  return await new Promise(r=>cv.toBlob(r,'image/jpeg',q||.78));
+}
+const matMsg=t=>{const e=$('matMsg');if(e){e.style.display=t?'block':'none';e.innerText=t||'';}};
+
+async function readPdf(f,pages,say){
+  await loadScript(LIB.pdf);pdfjsLib.GlobalWorkerOptions.workerSrc=LIB.pdfw;
+  const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+  const N=Math.min(pdf.numPages,200),O=pdfjsLib.OPS;
+  for(let n=1;n<=N;n++){
+    say(`${f.name} 읽는 중… ${n}/${N}쪽`);
+    const pg=await pdf.getPage(n);
+    const tc=await pg.getTextContent();
+    const text=tc.items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+    let img=0,vec=0;
+    try{const ol=await pg.getOperatorList();
+      ol.fnArray.forEach(fn=>{if(fn===O.paintImageXObject||fn===O.paintJpegXObject||fn===O.paintInlineImageXObject||fn===O.paintImageMaskXObject)img++;else if(fn===O.constructPath)vec++;});}catch(e){}
+    const visual=(($('matAll')&&$('matAll').checked))||img>0||vec>=30||text.length<120;
+    let blobs=[];
+    if(visual){
+      const vp0=pg.getViewport({scale:1}),sc=Math.min(2.2,1100/vp0.width),vp=pg.getViewport({scale:sc});
+      const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+      const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);
+      await pg.render({canvasContext:cx,viewport:vp}).promise;
+      blobs=[await new Promise(r=>cv.toBlob(r,'image/jpeg',.72))];
+    }
+    if(text||blobs.length)pages.push({file:f.name,n,text,blobs});
+  }
+}
+async function readPptx(f,pages,say){
+  await loadScript(LIB.zip);
+  const z=await JSZip.loadAsync(await f.arrayBuffer());
+  const names=Object.keys(z.files).filter(k=>/^ppt\/slides\/slide\d+\.xml$/.test(k)).sort((a,b)=>parseInt(a.match(/(\d+)\.xml/)[1])-parseInt(b.match(/(\d+)\.xml/)[1]));
+  const tx=x=>(x.match(/<a:t>([^<]*)<\/a:t>/g)||[]).map(t=>t.replace(/<\/?a:t>/g,'')).join(' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/\s+/g,' ').trim();
+  let i=0;
+  for(const nm of names){
+    i++;say(`${f.name} 읽는 중… ${i}/${names.length}장`);
+    const num=nm.match(/slide(\d+)\.xml/)[1];
+    const text=tx(await z.file(nm).async('string'));
+    let notes='';
+    const rel=z.file(`ppt/slides/_rels/slide${num}.xml.rels`);
+    const blobs=[];
+    if(rel){
+      const rx=await rel.async('string');
+      const nt=rx.match(/Target="\.\.\/notesSlides\/(notesSlide\d+\.xml)"/);
+      if(nt&&z.file('ppt/notesSlides/'+nt[1]))notes=' [발표자 노트] '+tx(await z.file('ppt/notesSlides/'+nt[1]).async('string'));
+      const dec=t=>String(t).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
+      for(const m of rx.matchAll(/Target="\.\.\/charts\/(chart\d+\.xml)"/g)){
+        const cf=z.file('ppt/charts/'+m[1]);if(!cf)continue;
+        const cx=await cf.async('string');
+        const kind=((cx.match(/<c:(bar|line|pie|doughnut|area|scatter|radar|bubble)3?DChart/)||[])[1]||'');
+        const ttl=dec(((cx.match(/<c:title>[\s\S]*?<\/c:title>/)||[''])[0].match(/<a:t>([^<]*)<\/a:t>/g)||[]).map(t=>t.replace(/<\/?a:t>/g,'')).join(' '));
+        const vs=b=>(b||'').match(/<c:v>([^<]*)<\/c:v>/g)?.map(v=>dec(v.replace(/<\/?c:v>/g,'')))||[];
+        const sers=[...cx.matchAll(/<c:ser>([\s\S]*?)<\/c:ser>/g)].map(sm=>{
+          const b=sm[1],nm=vs((b.match(/<c:tx>[\s\S]*?<\/c:tx>/)||[''])[0])[0]||'',
+            cat=vs((b.match(/<c:(?:cat|xVal)>[\s\S]*?<\/c:(?:cat|xVal)>/)||[''])[0]),
+            val=vs((b.match(/<c:(?:val|yVal)>[\s\S]*?<\/c:(?:val|yVal)>/)||[''])[0]);
+          return `${nm||'계열'}: `+val.map((v,i)=>`${cat[i]!=null?cat[i]:i+1}=${v}`).join(', ');
+        });
+        notes+=` [차트 데이터] ${kind?kind+' 차트 · ':''}${ttl?'제목 '+ttl+' · ':''}${sers.join(' | ')}`;
+      }
+      for(const m of rx.matchAll(/Target="\.\.\/diagrams\/(data\d+\.xml)"/g)){
+        const df=z.file('ppt/diagrams/'+m[1]);if(!df)continue;
+        const dt=tx(await df.async('string'));if(dt)notes+=` [도식(SmartArt) 글자] ${dt}`;
+      }
+      const imgs=[...rx.matchAll(/Target="\.\.\/media\/([^"]+\.(?:png|jpe?g|gif|webp|bmp))"/gi)].map(m=>'ppt/media/'+m[1]);
+      for(const k of [...new Set(imgs)].slice(0,4)){
+        const zf=z.file(k);if(!zf)continue;
+        const b=await zf.async('blob');if(b.size<4000)continue;       // 아이콘·장식은 건너뜀
+        try{blobs.push(await toJpeg(b,1100,.78));}catch(e){}
+      }
+    }
+    pages.push({file:f.name,n:i,text:(text+notes).trim(),blobs});
+  }
+  if(!names.length)throw new Error('슬라이드를 찾지 못했습니다. (옛 .ppt 파일이면 .pptx 또는 PDF로 저장해서 올려주세요)');
+}
+async function readDocx(f,pages,say){
+  await loadScript(LIB.zip);say(f.name+' 읽는 중…');
+  const z=await JSZip.loadAsync(await f.arrayBuffer());
+  const xml=await z.file('word/document.xml').async('string');
+  const text=xml.replace(/<\/w:p>/g,'\n').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+  textToChunks(text).forEach((c,i)=>pages.push({file:f.name,n:i+1,text:c.text,blobs:[]}));
+  const imgs=Object.keys(z.files).filter(k=>/^word\/media\/.+\.(png|jpe?g|gif|webp|bmp)$/i.test(k));
+  let k=0;for(const nm of imgs.slice(0,40)){
+    const b=await z.file(nm).async('blob');if(b.size<4000)continue;
+    try{pages.push({file:f.name,n:'그림'+(++k),text:'',blobs:[await toJpeg(b,1100,.78)]});}catch(e){}
+  }
+}
+async function describeFig(blobs,text,fname){
+  const urls=[];for(const b of blobs)urls.push(await blobToDataURL(b));
+  const prompt=`학생이 공부할 자료(${fname})의 한 페이지/슬라이드 이미지다. 그림·도표·그래프·지도·사진·다이어그램·표·수식을 학습용으로 정확히 설명해라.
+형식(한국어, 자료 속 영어 라벨은 원문 그대로 괄호로 병기):
+종류: 도표/그래프/지도/사진/다이어그램/표/수식/문서 페이지/기타 중 하나
+제목: (보이면 그대로, 없으면 한 줄로 요약)
+설명: 2~3문장 — 무엇을 보여주는지
+핵심 정보:
+- 보이는 라벨·축·범례·수치·화살표 관계·색 구분 등을 구체적으로 5~10개
+보이지 않거나 읽을 수 없는 것은 지어내지 말고 "판독 불가"라고 쓴다.
+${text?`이 페이지의 글(참고): ${text.slice(0,500)}`:''}`;
+  const content=[{type:'text',text:prompt},...urls.map(u=>({type:'image_url',image_url:{url:u}}))];
+  return (await llm([{role:'user',content}],{temp:.1,maxTokens:800})).trim();
+}
+let matBusy=false;
+async function matPick(fl){
+  const files=[...(fl||[])];if(!files.length||matBusy)return;
+  if(needKey())return;
+  matBusy=true;
+  try{
+    const pages=[];
+    for(const f of files){
+      const ext=(f.name.split('.').pop()||'').toLowerCase();
+      try{
+        if(ext==='pdf'||f.type==='application/pdf')await readPdf(f,pages,matMsg);
+        else if(ext==='pptx')await readPptx(f,pages,matMsg);
+        else if(ext==='ppt')throw new Error('옛 .ppt 형식은 읽을 수 없습니다. .pptx 또는 PDF로 저장해서 올려주세요.');
+        else if(ext==='docx')await readDocx(f,pages,matMsg);
+        else if(/^image\//.test(f.type)||/^(png|jpe?g|webp|gif)$/.test(ext))pages.push({file:f.name,n:1,text:'',blobs:[await toJpeg(f,1400,.8)]});
+        else if(/^(txt|md|srt|vtt)$/.test(ext)){const t=await f.text();textToChunks(t).forEach((c,i)=>pages.push({file:f.name,n:i+1,text:c.text,blobs:[]}));}
+        else throw new Error('지원하지 않는 형식입니다: '+f.name);
+      }catch(e){alert(f.name+': '+(e.message||e));}
+    }
+    if(!pages.length){matMsg('');return;}
+    // 그림 읽기 (3개씩 동시에)
+    const vis=pages.filter(p=>p.blobs&&p.blobs.length).slice(0,(($('matAll')&&$('matAll').checked)?200:80));
+    let done=0;
+    const q=vis.slice();
+    await Promise.all([0,1,2].map(async()=>{
+      while(q.length){const p=q.shift();
+        try{p.desc=await describeFig(p.blobs,p.text,p.file);}catch(e){p.desc='(그림 설명을 만들지 못함: '+String(e.message||e).slice(0,60)+')';}
+        matMsg(`그림 읽는 중… ${++done}/${vis.length}`);}
+    }));
+    matMsg('저장 중…');
+    const sid='sess_'+Date.now(),chunks=[];
+    for(let i=0;i<pages.length;i++){
+      const p=pages[i],figs=[];
+      for(let k=0;k<(p.blobs||[]).length;k++){
+        const key=`fig_${sid}_${i}_${k}`;
+        await put({key,sessionId:sid,seq:-1,blob:p.blobs[k],status:'fig'});figs.push({key});
+      }
+      const head=`(${p.file} ${/^\d+$/.test(String(p.n))?p.n+'쪽':p.n}) `;
+      const d=p.desc?` [그림 설명] ${p.desc.replace(/\s*\n+\s*/g,' / ')}`:'';
+      chunks.push({seq:i,para:i+1,text:(head+(p.text||'')+d).trim(),figs,file:p.file});
+    }
+    const now=new Date(),first=files[0].name.replace(/\.[^.]+$/,'');
+    session={id:sid,kind:'text',mat:files.map(f=>f.name),
+      title:files.length>1?`${first} 외 ${files.length-1}개`:first,
+      date:now.toLocaleString('ko-KR'),chunks,transcript:chunks.map(c=>c.text).join('\n\n'),
+      duration:0,complete:true,summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
+    save(session);renderArc();matMsg('');stdPane='qa';goTab('std');
+  }catch(e){alert('자료를 읽는 중 오류: '+(e.message||e));matMsg('');}
+  finally{matBusy=false;}
+}
+(function(){
+  const z=document.getElementById('matDrop');if(!z)return;
+  ['dragenter','dragover'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('on');}));
+  ['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('on');}));
+  z.addEventListener('drop',e=>{matPick(e.dataTransfer.files);});
+})();
+/* 답변·전문 속 [그림 단락 N] 자리에 실제 그림을 채운다 */
+const _figUrl=new Map();
+async function figUrl(key){
+  if(_figUrl.has(key))return _figUrl.get(key);
+  try{const r=await getOne(key);if(r&&r.blob){const u=URL.createObjectURL(r.blob);_figUrl.set(key,u);return u;}}catch(e){}
+  return null;
+}
+async function hydrateFigs(){
+  if(!session)return;
+  const els=document.querySelectorAll('.figph:not([data-done])');
+  for(const el of els){
+    el.dataset.done='1';
+    const p=+el.dataset.p;
+    const c=(session.chunks||[]).find(c=>c.para===p&&c.figs&&c.figs.length);
+    if(!c){el.remove();continue;}
+    const us=[];for(const f of c.figs){const u=await figUrl(f.key);if(u)us.push(u);}
+    if(!us.length){el.remove();continue;}
+    el.innerHTML=`<div class="figrow">${us.map(u=>`<img src="${u}" onclick="zoomFig(this.src)">`).join('')}</div><div class="figcap">📎 ${esc(c.file||'')} · 단락 ${p}</div>`;
+  }
+}
+function zoomFig(u){
+  const d=document.createElement('div');d.id='figZoom';d.innerHTML=`<img src="${u}">`;d.onclick=()=>d.remove();document.body.appendChild(d);
+}
+
 function makeTextSession(){
   const txt=($('txtInput').value||'').trim();
   if(txt.length<50)return alert('내용이 너무 짧습니다. 강의 텍스트를 붙여넣어 주세요.');
@@ -2638,7 +2856,8 @@ function citeHtml(md){
 }
 function mdCite(md,inline){
   const html=(typeof marked!=='undefined')?(inline&&marked.parseInline?marked.parseInline(md||''):marked.parse(md||'')):esc(md||'').replace(/\n/g,'<br>');
-  return html.replace(/\[((?:\d{1,2}:)?\d{1,2}:\d{2}|단락\s*\d+)\]/g,
+  return html.replace(/\[그림\s*:?\s*(?:단락\s*)?(\d+)\]/g,(m,n)=>`<span class="figph" data-p="${n}"></span>`)
+    .replace(/\[((?:\d{1,2}:)?\d{1,2}:\d{2}|단락\s*\d+)\]/g,
     (m,k)=>`<button class="cite" data-k="${esc(k.replace(/단락\s*/,'단락 '))}">${esc(k)}</button>`);
 }
 function drawSummary(){
@@ -2982,6 +3201,13 @@ async function ask(forceQ,baseIdx){
 - 앞에서 이미 인용한 원문 문장은 되도록 다시 인용하지 마라.
 `;
 
+    const hasFig=(session.chunks||[]).some(c=>c.figs&&c.figs.length);
+    const figRule=hasFig?`
+★ 이 자료에는 그림·도표·사진이 들어 있다. 원문에서 "[그림 설명]"이 붙은 단락이 그 그림이다.
+- 질문이 그림·도표·시각자료와 관련되거나 그림을 보면 이해가 쉬워지면, 해당 단락 번호로 **한 줄에 [그림 단락 N] 만** 따로 쓴다. 앱이 그 자리에 실제 그림을 띄운다. 원문에 없는 단락 번호는 쓰지 마라.
+- 그 바로 아래에 그림 정보를 불릿 목록으로 나열한다: 종류 · 무엇을 보여주는지 · 보이는 라벨/수치/범례 · 질문과의 연결. [그림 설명]에 있는 내용만 쓰고 지어내지 마라.
+- 그림이 여러 개면 각각 [그림 단락 N]을 따로 쓴다.
+`:'';
     const sys=`너는 이 강의를 통째로 들은 조교다. 아래 [강의 원문]에는 각 줄 앞에 위치 표시가 붙어 있다.
 학생의 질문에 ${TR_LANGS[trLang].name}로 답한다.
 
@@ -2996,7 +3222,7 @@ async function ask(forceQ,baseIdx){
 - 위치 표시는 반드시 [강의 원문]에 실제로 있는 표시만 쓴다.
 - 학생이 영어에 약하므로 어려운 영어 표현은 뜻을 함께 적어준다.
 - 학생이 사진(스크린샷)을 함께 보냈다면, 그 사진 속 문제·슬라이드·표 등을 직접 읽고 답한다. 사진 내용이 강의 원문과 연결되면 위치 표시도 같이 붙인다.
-${choiceRule}${multiRule}${repeatRule}
+${figRule}${choiceRule}${multiRule}${repeatRule}
 [앞선 질문들]
 ${hist}
 ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
@@ -3043,6 +3269,11 @@ ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
     }
     if(a===null)throw lastErr||new Error('알 수 없는 오류');
     box.querySelector('.a').innerHTML=citeHtml(a);
+    if(hasFig&&!/\[그림\s*:?\s*(?:단락\s*)?\d+\]/.test(a)&&/그림|도표|그래프|사진|이미지|보여|지도|figure|chart|graph|diagram|picture|image|map/i.test(q)){
+      const want=citedIn(a).map(x=>(String(x).match(/단락\s*(\d+)/)||[])[1]).filter(Boolean).map(Number)
+        .filter(n=>(session.chunks||[]).some(c=>c.para===n&&c.figs&&c.figs.length)).slice(0,2);
+      if(want.length)a+='\n\n'+want.map(n=>`[그림 단락 ${n}]`).join('\n');
+    }
     session.qa=session.qa||[];session.qa.push({q,a,star:0});save(session);
     drawQA();
     const el=document.getElementById('qa-'+(session.qa.length-1));
@@ -3155,7 +3386,7 @@ function drawQA(){
         <span class="qno">#${i+1}</span>
         ${deepRow(i)}
       </div></div>`).join('');
-  drawSuggested();drawFollowups();
+  drawSuggested();drawFollowups();hydrateFigs();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -3911,7 +4142,7 @@ function renderStudy(){
   $('stdEmpty').style.display='none';$('stdBody').style.display='block';
   $('stdTitle').innerText=session.title||'제목 없음';
   const n=bodyChunks(session).length;
-  $('stdMeta').innerText=`${session.kind==='text'?'붙여넣은 텍스트':'녹음'} · ${(session.transcript||'').length.toLocaleString()}자 · ${n}구간`
+  $('stdMeta').innerText=`${session.mat?'자료 '+session.mat.length+'개':session.kind==='text'?'붙여넣은 텍스트':'녹음'} · ${(session.transcript||'').length.toLocaleString()}자 · ${n}구간`
     +(session.duration?` · ${fmt(session.duration)}`:'');
   drawSummary();drawQA();drawQuiz();drawVocab();drawFull();paintStdPane();paintScanUI();
 }
@@ -3922,9 +4153,10 @@ function paintStdPane(){
 function drawFull(){
   const cs=bodyChunks(session);
   $('fullArea').innerHTML=cs.length?cs.map(c=>
-    `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}`
+    `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}`+(c.figs&&c.figs.length?`<span class="figph" data-p="${c.para}"></span>`:'')
     +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+fixBoxHtml(c)+trBtn(c.seq,!!c.ko)+`</div>`).join('')
     :'<div class="empty">내용이 없습니다.</div>';
+  hydrateFigs();
 }
 function jumpTo(k){
   stdPane='full';paintStdPane();
@@ -3978,7 +4210,7 @@ function renderArc(){
     const kb=(sizeOf(s)/1024).toFixed(1);
     return `<div class="arc" onclick="openArc('${s.id}')">
       <div class="arc-hd"><span>${esc(s.date||'')}</span>
-        <span class="bdg ${s.kind==='text'?'bdg-t':(s.complete?'bdg-d':'bdg-p')}">${s.kind==='text'?'텍스트':(s.complete?'완료':'중단')}</span></div>
+        <span class="bdg ${s.kind==='text'?'bdg-t':(s.complete?'bdg-d':'bdg-p')}">${s.mat?'자료':s.kind==='text'?'텍스트':(s.complete?'완료':'중단')}</span></div>
       <div class="arc-t">${esc(s.title||'제목 없음')}</div>
       <div class="arc-m">${(s.transcript||'').length.toLocaleString()}자 · ${kb}KB${tags.length?' · '+tags.join(' · '):''}</div>
       <div class="row" style="margin-top:9px;" onclick="event.stopPropagation()">
@@ -4005,6 +4237,7 @@ function openArc(id){
 function delSession(id){
   if(!confirm('이 기록을 삭제할까요? 복구할 수 없습니다.'))return;
   setSessions(sessions().filter(x=>x.id!==id));
+  getAll().then(a=>a.filter(c=>c.status==='fig'&&c.sessionId===id).forEach(c=>del(c.key).catch(()=>{}))).catch(()=>{});
   if(session&&session.id===id)session=null;
   renderArc();renderStudy();
 }
