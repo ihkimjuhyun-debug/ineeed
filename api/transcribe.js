@@ -3,7 +3,7 @@
 // 16kHz mono 16bit 기준: 30초 ≈ 1MB, base64 로도 ≈ 1.3MB → Vercel 본문 한도 4.5MB 안쪽.
 // prompt(선택): "Vocabulary: gerund, infinitive." 처럼 강의에 나올 용어를 알려주면 받아쓰기가 그 단어를 먼저 떠올려 오인식이 줄어듭니다.
 
-const ALLOWED = ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe', 'whisper-1'];
+const ALLOWED = ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe', 'whisper-1', 'gpt-4o-transcribe-diarize'];
 const RATE_PER_MIN = Number(process.env.STT_RATE_PER_MIN || 200); // 코드별 분당 구간 수 — 파일 업로드 시 여러 구간을 동시에 보내므로 여유 있게
 const MAX_BYTES = 8 * 1024 * 1024;
 
@@ -63,15 +63,31 @@ module.exports = async (req, res) => {
     if (buf.length > MAX_BYTES) return res.status(413).json({ error: '오디오가 너무 큽니다.' });
 
     const model = ALLOWED.indexOf(b.model) !== -1 ? b.model : 'gpt-4o-transcribe';
-    const fmt = b.response_format === 'verbose_json' ? 'verbose_json' : 'json';
-    const prompt = typeof b.prompt === 'string' ? b.prompt.trim().slice(0, 600) : '';
+    const diar = model === 'gpt-4o-transcribe-diarize';
+    const fmt = diar ? 'diarized_json' : (b.response_format === 'verbose_json' ? 'verbose_json' : 'json');
+    const prompt = !diar && typeof b.prompt === 'string' ? b.prompt.trim().slice(0, 600) : '';
 
     const fd = new FormData();
     fd.append('file', new Blob([buf], { type: 'audio/wav' }), 'a.wav');
     fd.append('model', model);
-    fd.append('temperature', '0');
+    if (!diar) fd.append('temperature', '0');
     fd.append('response_format', fmt);
     if (prompt) fd.append('prompt', prompt);
+    if (typeof b.language === 'string' && /^[a-z]{2}$/.test(b.language)) fd.append('language', b.language);
+    if (diar) {
+      fd.append('chunking_strategy', 'auto');
+      // 같은 사람을 구간마다 같은 이름으로 알아보도록 목소리 샘플(최대 4개)을 함께 보낸다
+      const names = Array.isArray(b.known_speaker_names) ? b.known_speaker_names.slice(0, 4) : [];
+      const refs = Array.isArray(b.known_speaker_references) ? b.known_speaker_references.slice(0, 4) : [];
+      if (names.length && names.length === refs.length) {
+        names.forEach((n, i) => {
+          const u = String(refs[i] || '');
+          if (!/^data:audio\/[a-z0-9.+-]+;base64,/i.test(u) || u.length > 700000) return;
+          fd.append('known_speaker_names[]', String(n).slice(0, 20));
+          fd.append('known_speaker_references[]', u);
+        });
+      }
+    }
 
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -81,7 +97,7 @@ module.exports = async (req, res) => {
     const text = await r.text();
     if (!r.ok) return res.status(r.status).json({ error: text.slice(0, 400) });
 
-    console.log(`[stt] ${who.name} bytes=${buf.length} model=${model}${prompt ? ' prompt=1' : ''}`);
+    console.log(`[stt] ${who.name} bytes=${buf.length} model=${model}${prompt ? ' prompt=1' : ''}${diar ? ' diar=1' : ''}`);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return res.status(200).send(text);
   } catch (e) {
