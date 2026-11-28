@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ryan's Note</title>
 <meta name="theme-color" content="#F2F2F7">
+<aside id="sidePanel">
+  <div class="sphd"><b>📑 강의 흐름</b><span><button class="mini" onclick="updateTopics(session,true)" id="topicBtn">↻</button><button class="mini sheetx" onclick="toggleSheet()">✕</button></span></div>
+  <div id="spTopics" class="sptopics"></div>
+  <div class="sphd" style="margin-top:12px;"><b>📜 전문</b><span class="spsmall">작게 보기</span></div>
+  <div id="spText" class="sptext"></div>
+</aside>
 <script>(function(){try{var t=localStorage.getItem('lecnote_theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
 <script>window.onerror=function(m,s,l){console.error('ERR:',m,'L'+l);return true;};</script>
@@ -481,6 +487,39 @@ body.recfocus .hdr{display:none;}
 .figcap{font-size:11px;color:var(--mut,#8e8e93);font-weight:700;margin-top:4px}
 #figZoom{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;cursor:zoom-out}
 #figZoom img{max-width:100%;max-height:100%;background:#fff;border-radius:6px}
+.sp{display:inline-block;min-width:1.6em;text-align:center;font-weight:900;font-size:11.5px;border-radius:6px;padding:1px 6px;margin-right:6px;color:#fff;cursor:pointer;background:#8e8e93;vertical-align:1px}
+.spA{background:#007aff}.spB{background:#ff9500}.spC{background:#34c759}.spD{background:#af52de}.spE{background:#ff2d55}
+.seg{margin:2px 0}
+.livebar{flex-wrap:wrap}
+.sheetbtn{display:none}
+#sidePanel{display:none;position:fixed;z-index:30;top:78px;bottom:20px;left:calc(50% + 350px);right:16px;background:var(--cardbg,#fff);border:1px solid var(--cardline,#e5e5ea);border-radius:16px;padding:12px 14px;flex-direction:column;overflow:hidden;font-size:12px}
+@media(min-width:1100px){body.hasside #sidePanel{display:flex}}
+@media(max-width:1099px){body.hasside .sheetbtn{display:inline-block}
+  body.hasside #sidePanel.sheet{display:flex;left:10px;right:10px;top:10px;bottom:10px;z-index:200;box-shadow:0 8px 40px rgba(0,0,0,.35)}}
+#sidePanel .sheetx{display:none}#sidePanel.sheet .sheetx{display:inline-block}
+.sphd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px}
+.spsmall{font-size:11px;color:var(--mut,#8e8e93);font-weight:700}
+.sptopics{flex:0 0 auto;max-height:42%;overflow-y:auto}
+.tp{padding:6px 8px;border-radius:9px;margin-bottom:4px;background:rgba(142,142,147,.1);cursor:pointer;line-height:1.4}
+.tp.now{background:rgba(0,122,255,.14)}
+.tp .tpt{font-weight:800;color:var(--blue,#007aff);font-size:11px}
+.tp .tpn{font-weight:800;font-size:12.5px}.tp .tpg{color:var(--mut,#8e8e93);font-size:11.5px}
+.sptext{flex:1;overflow-y:auto;font-size:11.5px;line-height:1.55;color:var(--mut,#6b6b70)}
+.sptext .sl{margin-bottom:5px}.sptext .st{color:var(--blue,#007aff);font-weight:800;margin-right:4px}
+.igrp{padding:9px 0;border-bottom:1px solid var(--bd-f4f4f6)}.igrp:last-child{border-bottom:none}
+.igrp>.ts{font-size:11px;font-weight:900;color:var(--blue);margin-bottom:3px}
+.ck.inst{display:inline;padding:0;border:0}
+.ck.inst .ts{display:none}
+.ck.inst .tx{display:inline;font-size:15.5px;line-height:1.8}
+.ck.inst .tx::after{content:' '}
+.ck.inst .trrow{display:none}
+.ck.inst.open{display:block;padding:4px 0}.ck.inst.open .trrow{display:flex}.ck.inst.open .tx{display:block}
+.ck.inst .ko{display:block;margin:3px 0 7px}
+.hintbox{display:flex;gap:6px;margin:8px 0}.hintbox input{flex:1;min-width:0;font-size:13px;padding:8px 10px}
+.hintbox button{border:none;border-radius:9px;background:var(--blue,#007aff);color:#fff;font-weight:800;padding:0 14px;cursor:pointer;font-family:inherit}
+.fx-note{font-size:12px;line-height:1.5;margin-bottom:5px;color:var(--text-8a6a00,#8a6a00);font-weight:700}
+.fx-aud{font-size:11.5px;font-weight:800;border-radius:6px;padding:1px 6px;background:rgba(52,199,89,.16);color:#1d8f3f}
+.fx-aud.w{background:rgba(255,149,0,.16);color:#b86b00}.fx-aud.n{background:rgba(142,142,147,.18);color:var(--mut,#6b6b70)}
 </style>
 </head>
 <body>
@@ -582,6 +621,12 @@ body.recfocus .hdr{display:none;}
       <div class="tip" data-i18n="trTip">각 문단 아래 ⟲ 버튼을 누르면 이 언어로 번역해서 보여줍니다.</div>
       <label class="swt" style="margin-top:14px;"><input type="checkbox" id="liveTrChk" onchange="setLiveTr(this.checked)"><span class="swk"></span><span id="liveTrLbl"></span></label>
       <div class="tip" id="liveTrTip"></div>
+      <div class="lbl" style="margin-top:14px;">🗣 강의(말하는) 언어</div>
+      <select id="slangSel" class="sel" onchange="setSlang(this.value)">
+        <option value="en">English (영어 강의 · 권장)</option><option value="ko">한국어</option><option value="ja">日本語</option><option value="zh">中文</option><option value="es">Español</option><option value="auto">자동 감지</option></select>
+      <div class="tip">언어를 정해 두면 조용한 구간에서 엉뚱한 언어(터키어 등)로 받아 적는 오류가 사라집니다. 영어와 한국어를 섞어 말하는 수업이면 "자동 감지"를 고르세요.</div>
+      <label class="swt" style="margin-top:14px;"><input type="checkbox" id="diarChk" onchange="setDiar(this.checked)"><span class="swk"></span><span id="diarLbl"></span></label>
+      <div class="tip" id="diarTip"></div>
     </div>
 
     <input type="file" id="audioFile" accept="audio/*" style="display:none;" onchange="uploadAudioFile(this)">
@@ -596,6 +641,9 @@ body.recfocus .hdr{display:none;}
       <div class="livebar" id="liveBar">
         <label class="swt"><input type="checkbox" id="liveTrChk2" onchange="setLiveTr(this.checked)"><span class="swk"></span><span id="liveTrLbl2"></span></label>
         <select id="trLangSel2" class="sel mini" onchange="setTrLang(this.value)"></select>
+        <select id="chunkSel2" class="sel mini" onchange="setChunk(+this.value)" title="받아쓰기 간격 (녹음 중에도 바꿀 수 있어요)">
+          <option value="3">⚡ 즉시</option><option value="10">10초</option><option value="20">20초</option><option value="30">30초</option></select>
+        <button class="mini sheetbtn" onclick="toggleSheet()">📑 흐름·전문</button>
       </div>
       <div class="padwrap"><div class="pad" id="pad"><div class="hint" data-i18n-html="padHint">녹음을 시작하면<br>여기에 텍스트가 쌓입니다</div></div>
         <button id="padJump" class="padjump" style="display:none;" onclick="padToBottom()"></button></div>
@@ -748,6 +796,12 @@ body.recfocus .hdr{display:none;}
       <button data-v="name" data-i18n="arcSortName" onclick="setArcSort('name')">🔤 이름순</button>
       <button data-v="size" data-i18n="arcSortSize" onclick="setArcSort('size')">📦 용량순</button>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;">
+      <button class="btn btn-gray btn-sm" onclick="exportAll()">💾 전체 백업 받기</button>
+      <button class="btn btn-gray btn-sm" onclick="document.getElementById('bkFile').click()">📂 백업 불러오기</button>
+      <button class="btn btn-gray btn-sm" onclick="salvage()">🛟 사라진 녹음 찾기</button>
+      <input type="file" id="bkFile" accept=".json,application/json" style="display:none;" onchange="importBackup(this.files);this.value=''">
+    </div>
     <div id="arcList"></div>
   </div>
 </div>
@@ -842,6 +896,8 @@ function noSleepOff(){
   }catch(e){}
 }
 const t4=o=>o[trLang]||o.ko;
+function slang(){try{return localStorage.getItem('lecnote_slang')||'en';}catch(e){return 'en';}}
+function setSlang(v){try{localStorage.setItem('lecnote_slang',v);}catch(e){}}
 function sttPrompt(sess,n){
   let out='';
   const t=(sess&&sess.terms)||[];
@@ -885,21 +941,132 @@ async function del(k){const d=await db();return new Promise((r,j)=>{const t=d.tr
 async function getAll(){const d=await db();return new Promise((r,j)=>{const t=d.transaction(ST,'readonly');const q=t.objectStore(ST).getAll();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>j(q.error);});}
 
 /* ═══════════ 세션 저장 ═══════════ */
-const sessions=()=>{try{return JSON.parse(localStorage.getItem(LS_S)||'[]');}catch(e){return[];}};
-const setSessions=a=>{try{localStorage.setItem(LS_S,JSON.stringify(a));}catch(e){console.warn('저장 실패(용량)',e);}};
-function save(s){const a=sessions();const i=a.findIndex(x=>x.id===s.id);if(i!==-1)a[i]=s;else a.unshift(s);setSessions(a);
- const el=$('saved');if(el)el.innerText='저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});}
+/* ═══════════════════════════════════════════════════════════════════════
+   세션 저장소 — IndexedDB 가 본체 (용량 수백 MB). 예전에는 localStorage(약 5MB)에 전부 넣었는데,
+   가득 차면 저장이 조용히 실패해 새 녹음이 보관함에 쌓이지 않았다. (원인)
+   · 저장이 확인된 뒤에만 원본 소리를 지운다  · 저장 실패는 빨간 경고로 바로 알린다
+   ═══════════════════════════════════════════════════════════════════════ */
+let MEM=[],useIDB=true,storeOK=true;
+const SDB='lecnote_sessions_db';
+let _sdb=null;
+function sdb(){
+  if(_sdb)return _sdb;
+  _sdb=new Promise((ok,no)=>{
+    if(!window.indexedDB)return no(new Error('no idb'));
+    const r=indexedDB.open(SDB,1);
+    r.onupgradeneeded=()=>{r.result.createObjectStore('sessions',{keyPath:'id'});};
+    r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
+  });
+  _sdb.catch(()=>{_sdb=null;});
+  return _sdb;
+}
+function storeWarn(on,msg){
+  let e=document.getElementById('storeWarn');
+  if(!on){if(e)e.remove();return;}
+  if(!e){e=document.createElement('div');e.id='storeWarn';
+    e.style.cssText='position:sticky;top:0;z-index:500;background:#ff3b30;color:#fff;padding:10px 14px;font-weight:800;font-size:13px;text-align:center;';
+    document.body.prepend(e);}
+  e.innerHTML=(msg||'⚠ 저장 공간 오류 — 지금 녹음이 보관함에 저장되지 않고 있어요.')+' <button onclick="exportAll()" style="margin-left:8px;border:none;border-radius:8px;padding:4px 10px;font-weight:800;cursor:pointer;">💾 지금 백업 받기</button>';
+}
+async function doPut(s){
+  try{
+    const d=await sdb();
+    return await new Promise(res=>{
+      let tx;try{tx=d.transaction('sessions','readwrite');tx.objectStore('sessions').put(s);}
+      catch(e){try{tx=d.transaction('sessions','readwrite');tx.objectStore('sessions').put(JSON.parse(JSON.stringify(s)));}catch(e2){return res(false);}}
+      tx.oncomplete=()=>res(true);tx.onerror=()=>res(false);tx.onabort=()=>res(false);});
+  }catch(e){
+    useIDB=false;                                        // IndexedDB 를 못 쓰면 예전 방식(localStorage)으로
+    try{localStorage.setItem(LS_S,JSON.stringify(MEM));return true;}catch(e2){return false;}
+  }
+}
+const _pq={};
+function persist(s){
+  const id=s.id,st=_pq[id]||(_pq[id]={busy:false,dirty:false,w:[]});
+  return new Promise(res=>{
+    st.w.push(res);if(st.busy){st.dirty=true;return;}
+    const run=async()=>{
+      st.busy=true;st.dirty=false;const ws=st.w;st.w=[];
+      const cur=MEM.find(x=>x.id===id)||s;
+      const ok=await doPut(cur);
+      storeOK=ok;storeWarn(!ok);
+      const el=$('saved');if(el)el.innerText=ok?'저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'⚠ 저장 실패';
+      ws.forEach(w=>w(ok));st.busy=false;if(st.dirty||st.w.length)run();
+    };run();
+  });
+}
+const sessions=()=>MEM.slice();
+function save(s){const i=MEM.findIndex(x=>x.id===s.id);if(i!==-1)MEM[i]=s;else MEM.unshift(s);return persist(s);}
+const saveAsync=save;
+function setSessions(a){
+  const old=new Set(MEM.map(x=>x.id));MEM=a.slice();
+  a.forEach(x=>persist(x));
+  old.forEach(id=>{if(!MEM.some(x=>x.id===id))idbDelSession(id);});
+}
+async function idbDelSession(id){try{const d=await sdb();d.transaction('sessions','readwrite').objectStore('sessions').delete(id);}catch(e){}}
+async function initStore(){
+  let rows=[];
+  try{const d=await sdb();rows=await new Promise(r=>{const q=d.transaction('sessions').objectStore('sessions').getAll();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>r([]);});}
+  catch(e){useIDB=false;}
+  let ls=[];try{ls=JSON.parse(localStorage.getItem(LS_S)||'[]');}catch(e){}
+  if(!useIDB){MEM=ls;return;}
+  const have=new Set(rows.map(r=>r.id)),mig=ls.filter(x=>x&&x.id&&!have.has(x.id));
+  let allOk=true;
+  for(const x of mig){if(!(await doPut(x)))allOk=false;}
+  if(allOk&&ls.length){try{localStorage.removeItem(LS_S);}catch(e){}}   // 옮긴 게 확인되면 옛 저장 공간을 비워 다른 설정도 저장되게 한다
+  MEM=rows.concat(mig).sort((a,b)=>(+String(b.id).replace(/\D/g,'')||0)-(+String(a.id).replace(/\D/g,'')||0));
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}   // 브라우저가 임의로 지우지 않게 요청
+}
+/* 💾 전체 백업 (JSON 파일로 내려받기) */
+function exportAll(){
+  const blob=new Blob([JSON.stringify({v:1,exported:new Date().toISOString(),sessions:MEM})],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='ryans-note-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();
+}
+function importBackup(files){
+  const f=files&&files[0];if(!f)return;
+  f.text().then(t=>{
+    const j=JSON.parse(t),arr=Array.isArray(j)?j:(j.sessions||[]);
+    const have=new Set(MEM.map(x=>x.id));let n=0;
+    arr.forEach(x=>{if(x&&x.id&&!have.has(x.id)){MEM.push(x);persist(x);n++;}});
+    MEM.sort((a,b)=>(+String(b.id).replace(/\D/g,'')||0)-(+String(a.id).replace(/\D/g,'')||0));
+    renderArc();alert(n+'개 기록을 불러왔어요.');
+  }).catch(e=>alert('백업 파일을 읽지 못했어요: '+e.message));
+}
+/* 🛟 사라진 녹음 찾기 — 보관함에 없는데 기기에 남아 있는 소리 조각을 찾아 다시 받아쓴다 */
+async function salvage(){
+  let all;try{all=await getAll();}catch(e){return alert('저장소를 읽지 못했어요.');}
+  const ids=new Set(sessions().map(x=>x.id));
+  const cand=all.filter(c=>c.blob&&(c.status==='keep'||c.status==='pending'||c.status==='failed')&&!ids.has(c.sessionId));
+  if(!cand.length)return alert('찾을 수 있는 소리 조각이 이 기기에 남아 있지 않아요.\n(이미 받아쓴 뒤 지워진 구간은 되살릴 수 없습니다.)');
+  const g={};cand.forEach(c=>(g[c.sessionId]=g[c.sessionId]||[]).push(c));
+  const lines=Object.keys(g).map(id=>{const t=+String(id).replace(/\D/g,'');return `· ${t?new Date(t).toLocaleString('ko-KR'):id} — ${g[id].length}구간`;}).join('\n');
+  if(!confirm(`남아 있는 녹음 조각을 찾았어요:\n${lines}\n\n다시 받아써서 보관함에 복구할까요? (받아쓰기 비용이 들어요)`))return;
+  if(needKey())return;
+  const ss=sessions();
+  for(const id of Object.keys(g)){
+    const t=+String(id).replace(/\D/g,''),recs=g[id].sort((a,b)=>(a.seq||0)-(b.seq||0));
+    const s={id,kind:'rec',title:'복구된 녹음 '+(t?new Date(t).toLocaleString('ko-KR'):''),date:t?new Date(t).toLocaleString('ko-KR'):'',
+      chunks:[],transcript:'',complete:true,summary:'',qa:[],suggested:[],followups:[],vocab:null,quiz:null};
+    ss.unshift(s);save(s);
+    let i=0;const w=async()=>{while(i<recs.length){const c=recs[i++];
+      await transcribe(s,c.key,c.seq,c.tSec!=null?c.tSec:(c.seq||0)*20,c.blob,0,true,CFG.STT);}};
+    await Promise.all([w(),w(),w()]);
+    rebuild(s);save(s);
+  }
+  renderArc();alert('복구 시도를 마쳤어요. 보관함에서 확인하세요.');
+}
 
+function _unusedSaveLabel(){}
 /* ═══════════ 초기화 ═══════════ */
 window.addEventListener('load',async()=>{
+  await initStore();
   const k=localStorage.getItem(LS_K);if(k){$('apiKey').value=k;showKeySaved();}
   $('apiKey').addEventListener('change',()=>{if(SRV.on)return;const v=$('apiKey').value.trim();if(v){try{localStorage.setItem(LS_K,v);}catch(e){}showKeySaved();}});
   try{const c=JSON.parse(localStorage.getItem(LS_C)||'{}');
     if(c.src)srcMode=c.src;if(c.amp)ampLv=+c.amp;if(c.chunk)chunkSec=+c.chunk;if(c.trLang&&TR_LANGS[c.trLang])trLang=c.trLang;if(c.liveTr)liveTrOn=true;}catch(e){}
   $('amp').value=ampLv;paintSrc();paintAmp();paintChunk();
-  $('segChunk').querySelectorAll('button').forEach(b=>b.onclick=()=>{
-    if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
-    chunkSec=+b.dataset.v;paintChunk();saveCfg();});
+  $('segChunk').querySelectorAll('button').forEach(b=>b.onclick=()=>setChunk(+b.dataset.v));
   $('segSrc').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(state!=='idle')return alert('녹음 중에는 바꿀 수 없습니다.');
     if(b.dataset.v!=='mic'&&!CAN_DISP){
@@ -927,8 +1094,10 @@ window.addEventListener('load',async()=>{
   $('appPass').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();savePass();}});
   await detectServer();
   await recovery(true);renderArc();
+  try{const all=sessions(),top=all.slice(0,2).map(x=>x.id),known=new Set(all.map(x=>x.id));   // 보관함에 있는 옛 기록의 소리만 정리 — 보관함에 없는 조각은 '사라진 녹음 찾기'용으로 남긴다
+    (await getAll()).filter(c=>c.status==='keep'&&known.has(c.sessionId)&&!top.includes(c.sessionId)).forEach(c=>del(c.key).catch(()=>{}));}catch(e){}
   window.addEventListener('beforeunload',e=>{if(state!=='idle'){flushPartial();e.preventDefault();e.returnValue='';}});
-  window.addEventListener('pagehide',()=>{if(state==='recording')flushPartial();});
+  window.addEventListener('pagehide',()=>{if(state==='recording')flushPartial();if(session)persist(session);});
   document.addEventListener('visibilitychange',async()=>{
     if(document.visibilityState==='hidden'&&state==='recording')flushPartial();
     if(document.visibilityState==='visible'&&state==='recording'){
@@ -938,7 +1107,9 @@ window.addEventListener('load',async()=>{
     }});
 });
 function saveCfg(){try{localStorage.setItem(LS_C,JSON.stringify({src:srcMode,amp:ampLv,chunk:chunkSec,trLang,liveTr:liveTrOn}));}catch(e){}}
+function setChunk(v){chunkSec=v;paintChunk();saveCfg();}   // 녹음 중에도 바꿀 수 있다 (다음 구간부터 적용)
 function paintChunk(){
+  const cs2=$('chunkSel2');if(cs2)cs2.value=String(chunkSec);
   $('segChunk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===chunkSec));
   const f=$('chunkTipFast'),n=$('chunkTipNorm');if(!f||!n)return;
   f.style.display=isInstant()?'block':'none';n.style.display=isInstant()?'none':'block';
@@ -1044,6 +1215,7 @@ function goTab(t){
   document.querySelectorAll('.sec').forEach(x=>x.classList.remove('on'));
   $('tab-'+t).classList.add('on');$('sec-'+t).classList.add('on');
   if(t==='arc')renderArc(); if(t==='std')renderStudy();
+  paintSide();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1291,7 +1463,7 @@ async function uploadAudioFile(input){
   s.terms=[];
   const rate=16000,stepN=chunkSec*rate,ovN=Math.min(p16.length,Math.round(rate*(CFG.OVERLAP||0)));
   const total=Math.max(1,Math.ceil(p16.length/stepN));
-  const ss=sessions();ss.unshift(s);setSessions(ss);
+  MEM.unshift(s);persist(s);
   let done=0,failedCnt=0;
   const paint=()=>{box.innerHTML=`<div class="lbl">🎧 변환 중... ${done}/${total}구간 (원본 ${clk(Math.round(totalSec))})</div>
     <div class="meter"><div class="mfill" style="width:${Math.round(done/Math.max(1,total)*100)}%"></div></div>`;};
@@ -1394,6 +1566,7 @@ function stop(){
 function finish(){
   if(!finalizing)return;finalizing=false;
   session.complete=true;session.duration=elapsed;rebuild(session);save(session);
+  updateTopics(session,true);
   $('statusTxt').innerText='완료';
   $('startBtn').style.display='block';$('startBtn').innerText='🎙 새 녹음 시작';$('startBtn').onclick=()=>location.reload();
   $('toStudy').style.display='flex';renderArc();
@@ -1408,10 +1581,11 @@ function clk(t){const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(
 /* ═══════════ 환각 방어 ═══════════ */
 const HAL=['thank you for watching','thanks for watching','please subscribe','like and subscribe',
 'see you next time','see you in the next video','subtitles by','amaraorg',
-'구독과 좋아요 부탁드립니다','시청해 주셔서 감사합니다','다음 영상에서 만나요','자막 제공','한글자막 by'];
+'izlediğiniz için teşekkürler','abone olmayı','altyazı m.k','suscríbete','merci d\'avoir regardé','untertitel der amara','sottotitoli','спасибо за просмотр','ご視聴ありがとうございました','谢谢观看','구독과 좋아요 부탁드립니다','시청해 주셔서 감사합니다','다음 영상에서 만나요','자막 제공','한글자막 by'];
 const nm=s=>(s||'').toLowerCase().replace(/[^a-z0-9가-힣\s]/g,'').replace(/\s+/g,' ').trim();
 function clean(t){
   if(!t)return '';
+  if(slang()==='en'){const L=t.match(/\p{L}/gu)||[];if(L.length>=8&&L.filter(ch=>ch.charCodeAt(0)>127).length/L.length>.25)return '';if((t.match(/[ğışİıŞĞ]/g)||[]).length>=2)return '';}   // 영어 강의인데 터키어·러시아어 등이 나오면 무음 환각이므로 버린다
   const n=nm(t);if(!n)return '';
   for(const p of HAL){const q=nm(p);if(q&&(n===q||(n.length<=q.length+16&&n.includes(q))))return '';}
   const w=t.trim().split(/\s+/);
@@ -1458,6 +1632,92 @@ window.addEventListener('online',()=>{
   setTimeout(autoRetryFailed,1500);
 });
 window.addEventListener('offline',()=>updateMeta());
+
+/* ═══════════════════════════════════════════════════════════════════════
+   👥 화자 구분 — 목소리를 구별해 "A: … / B: …" 로 나눠 적는다 (누구인지는 몰라도 됨)
+   · OpenAI 화자 구분 전사 모델(gpt-4o-transcribe-diarize)을 쓴다.
+   · 구간(10~30초)마다 따로 전사하므로, 처음 들린 사람의 목소리 샘플(2~6초)을 보관했다가
+     다음 구간부터 함께 보내 "같은 사람은 같은 글자"가 되게 한다. (최대 4명까지 이어서 구별)
+   · 문제가 생기면(모델 거절 등) 자동으로 예전 방식(화자 구분 없음)으로 되돌아간다.
+   ═══════════════════════════════════════════════════════════════════════ */
+const DIAR_MODEL='gpt-4o-transcribe-diarize',DIAR_NAMES=['Alpha','Bravo','Charlie','Delta'];
+const diarRefs=new Map();                       // 세션 id → [{sp,name,url}]
+let _dq=Promise.resolve();
+const diarSerial=fn=>{const p=_dq.then(fn,fn);_dq=p.catch(()=>{});return p;};
+function diarOn(){try{return localStorage.getItem('lecnote_diar')!=='0';}catch(e){return true;}}
+function setDiar(v){try{localStorage.setItem('lecnote_diar',v?'1':'0');}catch(e){}paintDiar();}
+function paintDiar(){
+  const sl=$('slangSel');if(sl)sl.value=slang();
+  const e=$('diarChk');if(e)e.checked=diarOn();
+  const l=$('diarLbl');if(l)l.innerText=t4({ko:'👥 화자 구분 (A: … B: …)',ja:'👥 話者分離 (A: … B: …)',zh:'👥 区分说话人 (A: … B: …)',es:'👥 Separar hablantes (A: … B: …)'});
+  const t=$('diarTip');if(t)t.innerText=t4({ko:'목소리를 구별해 말하는 사람마다 A, B, C…로 나눠 적습니다. (최대 4명까지 이어서 구별 · 한 사람만 말하면 표시가 나타나지 않아요. 켜면 용어 힌트 기능은 쓰이지 않습니다)',
+    ja:'声を聞き分けて、話す人ごとに A, B, C… と分けて表示します。（最大4人まで追跡・1人だけなら表示されません）',
+    zh:'根据声音区分说话人，以 A、B、C… 标示。（最多连续区分4人；只有一人说话时不显示）',
+    es:'Distingue las voces y marca a cada persona como A, B, C… (hasta 4 personas; si habla una sola, no se muestra).'});
+}
+const spkSet=s=>{const m=new Set();(s.chunks||[]).forEach(c=>(c.segs||[]).forEach(g=>m.add(g.sp)));return m;};
+const spkMulti=s=>spkSet(s).size>=2;
+const spName=(s,sp)=>((s&&s.spk&&s.spk[sp])||sp);
+function lineText(s,c){
+  return(spkMulti(s)&&c.segs&&c.segs.length)?c.segs.map(g=>`${spName(s,g.sp)}: ${g.text}`).join(' '):c.text;
+}
+function segsHtml(s,segs){
+  return segs.map(g=>`<div class="seg"><span class="sp sp${esc(g.sp)}" data-sp="${esc(g.sp)}" onclick="renameSpk('${esc(g.sp)}')" title="누르면 이름을 바꿀 수 있어요">${esc(spName(s,g.sp))}</span>${esc(g.text)}</div>`).join('');
+}
+function textHtml(s,c){return(c.segs&&c.segs.length&&(spkMulti(s)||c.segs.length>1))?segsHtml(s,c.segs):esc(c.text);}
+function renameSpk(sp){
+  if(!session)return;
+  const cur=spName(session,sp);
+  const n=prompt(`화자 ${sp}의 이름을 입력하세요 (예: 교수, 학생)\n비우면 "${sp}"로 되돌립니다.`,cur===sp?'':cur);
+  if(n===null)return;
+  session.spk=session.spk||{};
+  const v=n.trim().slice(0,12);
+  if(v&&v!==sp)session.spk[sp]=v;else delete session.spk[sp];
+  save(session);
+  document.querySelectorAll(`.sp[data-sp="${sp}"]`).forEach(e=>e.innerText=spName(session,sp));
+}
+/* WAV(16bit mono)의 일부를 잘라 data URL 로 */
+async function wavSliceURL(blob,a,b){
+  try{
+    const buf=await blob.arrayBuffer(),dv=new DataView(buf);
+    if(buf.byteLength<48||dv.getUint32(0,false)!==0x52494646)return null;
+    const rate=dv.getUint32(24,true),i0=Math.max(0,Math.floor(a*rate)),i1=Math.min((buf.byteLength-44)>>1,Math.floor(b*rate));
+    const n=i1-i0;if(n<rate*1.8)return null;
+    const out=new ArrayBuffer(44+n*2),o=new DataView(out);
+    const w=(p,t)=>{for(let i=0;i<t.length;i++)o.setUint8(p+i,t.charCodeAt(i));};
+    w(0,'RIFF');o.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');o.setUint32(16,16,true);o.setUint16(20,1,true);o.setUint16(22,1,true);
+    o.setUint32(24,rate,true);o.setUint32(28,rate*2,true);o.setUint16(32,2,true);o.setUint16(34,16,true);w(36,'data');o.setUint32(40,n*2,true);
+    new Uint8Array(out,44).set(new Uint8Array(buf,44+i0*2,n*2));
+    return await blobToDataURL(new Blob([out],{type:'audio/wav'}));
+  }catch(e){return null;}
+}
+/* 모델이 준 구간별 화자 → 전역 글자(A,B,…)로 바꾸고, 새 화자의 목소리 샘플을 보관 */
+async function diarSegs(sess,blob,raw,refs){
+  const known=new Map(refs.map(r=>[r.name,r.sp])),loc=new Map(),used=new Set(refs.map(r=>r.sp)),best={};
+  const nextSp=()=>{for(const L of 'ABCDEFGH'){if(!used.has(L)){used.add(L);return L;}}return 'H';};
+  const out=[];
+  for(const g of raw){
+    const t=String(g.text||'').trim();if(!t)continue;
+    const lab=String(g.speaker==null?'?':g.speaker);let sp;
+    if(known.has(lab))sp=known.get(lab);
+    else{
+      if(!loc.has(lab))loc.set(lab,nextSp());
+      sp=loc.get(lab);
+      const a=+g.start||0,e=+g.end||0,dur=e-a;
+      if(!best[sp]||dur>best[sp].dur)best[sp]={dur,a,e};
+    }
+    const last=out[out.length-1];
+    if(last&&last.sp===sp)last.text+=' '+t;else out.push({sp,text:t});
+  }
+  const list=diarRefs.get(sess.id)||[];
+  for(const sp of Object.keys(best)){
+    if(list.length>=4||list.some(r=>r.sp===sp)||best[sp].dur<2)continue;
+    const url=await wavSliceURL(blob,best[sp].a,Math.min(best[sp].e,best[sp].a+6));
+    if(url&&!list.some(r=>r.sp===sp))list.push({sp,name:DIAR_NAMES[list.length],url});
+  }
+  diarRefs.set(sess.id,list);
+  return out;
+}
 function transcribe(sess,idbKey,n,tSec,blob,retry,isRec,model){
   return new Promise(resolve=>sttEnqueue({args:[sess,idbKey,n,tSec,blob,retry,isRec,model],resolve},retry));
 }
@@ -1466,31 +1726,43 @@ async function sttRun(job){
   const done=()=>job.resolve();
   if(!hasAuth()){failed(sess,idbKey,n,tSec,blob,SRV.on?'접속 코드 없음':'API 키 없음');return done();}
   if(navigator.onLine===false){sttPark(job);return;}
+  const useD=diarOn()&&!job.noDiar;
+  /* 처음 두 목소리를 익히는 동안에는 한 구간씩 차례로 보낸다(동시에 보내면 같은 사람에게 다른 글자가 붙는다) */
+  if(useD&&!job._ser&&(diarRefs.get(sess.id)||[]).length<2){job._ser=1;return diarSerial(()=>sttRun(job));}
   try{
-    const verbose=(model==='whisper-1');
-    const fmt=verbose?'verbose_json':'json';
-    const prm=sttPrompt(sess,n);                // 고친 용어·직전 문장을 알려줘서 받아쓰기가 문맥을 이어가게 한다
+    const verbose=!useD&&(model==='whisper-1');
+    const fmt=useD?'diarized_json':(verbose?'verbose_json':'json');
+    const prm=useD?'':sttPrompt(sess,n);        // 고친 용어·직전 문장을 알려줘서 받아쓰기가 문맥을 이어가게 한다
+    const refs=useD?(diarRefs.get(sess.id)||[]).slice(0,4):[];
     let res;
     if(SRV.on){
       const b64=await blobToB64(blob);
       res=await fetchT('/api/transcribe',{method:'POST',headers:srvHeaders(),
-        body:JSON.stringify({audio:b64,model,response_format:fmt,prompt:prm||undefined})},STT_TIMEOUT);
+        body:JSON.stringify(useD?{audio:b64,model:DIAR_MODEL,response_format:fmt,language:slang()!=='auto'?slang():undefined,known_speaker_names:refs.map(r=>r.name),known_speaker_references:refs.map(r=>r.url)}
+          :{audio:b64,model,response_format:fmt,language:slang()!=='auto'?slang():undefined,prompt:prm||undefined})},STT_TIMEOUT);
       if(res.status===401){askPass();throw new Error('접속 코드가 필요합니다.');}
     }else{
       const fd=new FormData();
-      fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');
-      fd.append('response_format',fmt);if(prm)fd.append('prompt',prm);
+      fd.append('file',blob,'a.wav');fd.append('model',useD?DIAR_MODEL:model);if(!useD)fd.append('temperature','0');
+      fd.append('response_format',fmt);if(prm)fd.append('prompt',prm);if(slang()!=='auto')fd.append('language',slang());
+      if(useD){fd.append('chunking_strategy','auto');refs.forEach(r=>{fd.append('known_speaker_names[]',r.name);fd.append('known_speaker_references[]',r.url);});}
       res=await fetchT('https://api.openai.com/v1/audio/transcriptions',
         {method:'POST',headers:{'Authorization':'Bearer '+key()},body:fd},STT_TIMEOUT);
     }
     if(!res.ok){
       const txt=await res.text().catch(()=>'');
+      if(useD&&res.status!==401&&res.status!==429&&res.status<500){   // 화자 구분이 거절되면 예전 방식으로 바로 전환
+        job.noDiar=true;job.args[5]=0;return sttRun(job);}
       if((res.status===400||res.status===404||res.status===403)&&model!==CFG.STT_FB){
         job.args[5]=0;job.args[7]=CFG.STT_FB;return sttRun(job);}
       throw new Error('HTTP '+res.status+' '+txt.slice(0,120));}
     const d=await res.json();
-    let text='',filt=false;
-    if(verbose&&Array.isArray(d.segments)){
+    let text='',filt=false,segs=null;
+    if(useD&&Array.isArray(d.segments)&&d.segments.length){
+      segs=(await diarSegs(sess,blob,d.segments,refs)).map(g=>({sp:g.sp,text:clean(g.text)})).filter(g=>g.text);
+      text=segs.map(g=>g.text).join(' ');
+      if(!segs.length){segs=null;if(d.segments.length)filt=true;}
+    }else if(verbose&&Array.isArray(d.segments)){
       const raw=(d.text||'').trim();text=segFilter(d.segments)||'';
       if(raw&&!text)filt=true;
     }else text=(d.text||'').trim();
@@ -1499,15 +1771,20 @@ async function sttRun(job){
       if(pv){const d2=dedupe(pv.text,text);if(d2!==text)text=d2.trim();}
     }
     if(text&&prm&&nm(text)===nm(prm)){text='';filt=true;}     // 힌트 문장을 그대로 따라 쓴 경우(무음 환각)는 버린다
-    if(text){const c=clean(text);if(!c)filt=true;text=c;}
+    if(text&&!segs){const c=clean(text);if(!c)filt=true;text=c;}
     const i=sess.chunks.findIndex(c=>c.seq===n);
     const rec={seq:n,tSec,text,filtered:filt};
+    if(segs&&segs.length)rec.segs=segs;
     if(i!==-1)sess.chunks[i]=rec;else sess.chunks.push(rec);
     sess.chunks.sort((a,b)=>a.seq-b.seq);
-    rebuild(sess);save(sess);del(idbKey).catch(()=>{});
+    rebuild(sess);
+    const saved=await saveAsync(sess);               // 저장이 확인된 뒤에만 원본 소리를 지운다 (저장 실패 시 소리는 남아 복구 가능)
+    if(!isRec)keepAudio(sess,n,blob,tSec);          // 나중에 "이 부분 다시 듣기"로 검증할 수 있게 최근 구간 소리를 보관
+    if(saved)del(idbKey).catch(()=>{});
     pending=Math.max(0,pending-1);updateMeta();
+    if(!isRec&&text){paintSide();maybeTopics(sess);}
     if(!isRec&&session&&session.id===sess.id){
-      drawDone(n,text,filt);
+      drawDone(n,text,filt,rec.segs);
       if(text&&!filt&&liveTrOn){const co=sess.chunks.find(x=>x.seq===n);if(co)liveTranslate(sess,co);}
     }
     return done();
@@ -1590,15 +1867,26 @@ function initPadScroll(){
 function noHint(){const h=$('pad').querySelector('.hint');if(h)h.remove();}
 function drawPending(n,t){noHint();const p=$('pad'),d=document.createElement('div');
   d.className='ck pend';d.id='ck-'+n;d.innerHTML=`<div class="ts">${clk(t)}</div><div class="tx">받아쓰는 중...</div>`;
-  p.appendChild(d);padScroll(false);}
-function drawSilent(n,t){noHint();const p=$('pad'),d=document.createElement('div');
+  if(isInstant()){
+    /* ⚡ 즉시 모드: 줄마다 따로 띄우면 눈이 따라가기 힘들다 → 25초 단위로 한 문단에 이어서 흘려 쓴다 */
+    d.classList.add('inst');
+    d.onclick=e=>{if(e.target.closest('button,.fixbox,.hintbox,input'))return;d.classList.toggle('open');};
+    let g=p.lastElementChild;
+    if(!(g&&g.classList.contains('igrp')&&t-(+g.dataset.t0)<25)){
+      g=document.createElement('div');g.className='igrp';g.dataset.t0=t;g.innerHTML=`<div class="ts">${clk(t)}</div>`;p.appendChild(g);}
+    g.appendChild(d);
+  }else p.appendChild(d);
+  padScroll(false);}
+function drawSilent(n,t){if(isInstant())return;noHint();const p=$('pad'),d=document.createElement('div');
   d.className='ck sil';d.id='ck-'+n;d.innerHTML=`<div class="ts"></div><div class="tx">· 무음 (${clk(t)})</div>`;
   p.appendChild(d);padScroll(false);}
-function drawDone(n,text,filt){
+function drawDone(n,text,filt,segs){
   const d=$('ck-'+n);if(!d)return;
   if(filt){d.className='ck filt';d.querySelector('.tx').innerText='신뢰도 낮은 구간 — 제외됨';}
   else{
-    d.className='ck';d.querySelector('.tx').innerText=text||'(인식된 말 없음)';
+    d.className='ck';
+    if(segs&&segs.length&&(segs.length>1||spkMulti(session)))d.querySelector('.tx').innerHTML=segsHtml(session,segs);
+    else d.querySelector('.tx').innerText=text||'(인식된 말 없음)';
     if(text&&!d.querySelector('.trrow'))d.insertAdjacentHTML('beforeend',trBtn(n,false));
   }
   padScroll(!!text&&!filt);}
@@ -1968,7 +2256,7 @@ function makeTextSession(){
    ═══════════════════════════════════════════════════════════════════════ */
 function label(c){return (c.tSec!=null&&c.tSec!==undefined)?clk(c.tSec):('단락 '+(c.para||c.seq+1));}
 function bodyChunks(s){return (s.chunks||[]).filter(c=>c.text&&c.text.trim());}
-function fullLines(s){return bodyChunks(s).map(c=>`[${label(c)}] ${c.text}`);}
+function fullLines(s){return bodyChunks(s).map(c=>`[${label(c)}] ${lineText(s,c)}`);}
 function fullText(s){return fullLines(s).join('\n');}
 /* 보기(1·2·3·4)를 주고 고르라는 질문인지 판정 */
 function looksLikeChoice(s){
@@ -2538,7 +2826,7 @@ function putKo(host,txt,waiting){
    안 읽히는 문단만 골라서 눌러 한국어로 바꿔 본다. 다시 누르면 접힌다.
    ═══════════════════════════════════════════════════════════════════════ */
 function trBtn(seq,has){
-  return `<div class="trrow"><button class="trbtn fixb" style="margin-right:6px;" title="${esc(fixTitle())}" onclick="checkMisheard(${seq},this)"><span style="font-size:14px;">🔎</span></button><button class="trbtn re" style="${has?'':'display:none;'}margin-right:6px;font-size:15px;font-weight:800;" title="${esc(trReTitle())}" onclick="translateChunk(${seq},this,true)">↻</button><button class="trbtn${has?' on':''}" title="${TR_LANGS[trLang].name}로 번역" onclick="translateChunk(${seq},this)">
+  return `<div class="trrow"><button class="trbtn" style="margin-right:6px;" title="${esc(t4({ko:'이 부분이 틀렸다고 직접 지적하고 검증하기',ja:'間違いを指摘して検証',zh:'指出错误并验证',es:'Señalar un error y verificarlo'}))}" onclick="hintBox(${seq},this)"><span style="font-size:14px;">✍️</span></button><button class="trbtn fixb" style="margin-right:6px;" title="${esc(fixTitle())}" onclick="checkMisheard(${seq},this)"><span style="font-size:14px;">🔎</span></button><button class="trbtn re" style="${has?'':'display:none;'}margin-right:6px;font-size:15px;font-weight:800;" title="${esc(trReTitle())}" onclick="translateChunk(${seq},this,true)">↻</button><button class="trbtn${has?' on':''}" title="${TR_LANGS[trLang].name}로 번역" onclick="translateChunk(${seq},this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="17 1 21 5 17 9"></polyline>
       <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
@@ -2587,6 +2875,7 @@ async function translateChunk(seq,btn,force){
 let liveTrOn=false,briefKick=false;
 function setLiveTr(v){liveTrOn=!!v;saveCfg();paintLiveTr();}
 function paintLiveTr(){
+  paintDiar();
   ['liveTrChk','liveTrChk2'].forEach(id=>{const e=$(id);if(e)e.checked=liveTrOn;});
   const lbl=t4({ko:'🌐 실시간 번역',ja:'🌐 リアルタイム翻訳',zh:'🌐 实时翻译',es:'🌐 Traducción en vivo'});
   ['liveTrLbl','liveTrLbl2'].forEach(id=>{const e=$(id);if(e)e.innerText=lbl;});
@@ -2684,11 +2973,15 @@ function fixBoxHtml(c){
   if(!c.fixChecked)return '';
   const L=(c.fixes||[]);
   const yes=t4({ko:'이 문단',ja:'この段落',zh:'本段',es:'Este'}),all=t4({ko:'전체',ja:'全体',zh:'全部',es:'Todo'});
-  const body=L.length?L.map((f,i)=>`<div class="fixit"><span class="fx-h">${esc(f.heard)}</span><span>→</span>`
+  const aud=f=>f.audio==='strong'?`<span class="fx-aud">🎧 ${t4({ko:'소리에서도 확인됨',ja:'音声でも確認',zh:'录音中也确认',es:'Confirmado en el audio'})}</span>`
+    :f.audio==='weak'?`<span class="fx-aud w">🎧 ${t4({ko:'힌트를 주면 그렇게 들림(약한 근거)',ja:'ヒントを与えるとそう聞こえる(弱い根拠)',zh:'给提示后听起来是这样(证据较弱)',es:'Con la pista suena así (evidencia débil)'})}</span>`
+    :f.audio==='none'?`<span class="fx-aud n">🎧 ${t4({ko:'다시 들어도 원래대로 들림',ja:'聞き直しても元のまま',zh:'重听仍是原样',es:'Al reescuchar sigue igual'})}</span>`:'';
+  const note=c.hintNote?`<div class="fx-note">✍️ ${esc(c.hintNote)}</div>`:'';
+  const body=note+(L.length?L.map((f,i)=>`<div class="fixit"><span class="fx-h">${esc(f.heard)}</span><span>→</span>`
     +f.options.map((o,j)=>`<span class="fx-opt">${esc(o)}<button onclick="applyFix(${c.seq},${i},${j},false)">${yes}</button><button class="fx-all" onclick="applyFix(${c.seq},${i},${j},true)">${all}</button></span>`).join('')
-    +(f.reason?`<span class="fx-r">${esc(f.reason)}</span>`:'')
+    +aud(f)+(f.reason?`<span class="fx-r">${esc(f.reason)}</span>`:'')
     +`<button class="fx-x" onclick="dismissFix(${c.seq},${i})">✕</button></div>`).join('')
-    :`<span class="fx-none">${t4({ko:'문맥상 이상한 단어를 찾지 못했어요.',ja:'文脈上おかしな単語は見つかりませんでした。',zh:'没有发现与上下文不符的词。',es:'No se encontraron palabras sospechosas.'})}</span>`;
+    :(c.hintNote?'':`<span class="fx-none">${t4({ko:'문맥상 이상한 단어를 찾지 못했어요.',ja:'文脈上おかしな単語は見つかりませんでした。',zh:'没有发现与上下文不符的词。',es:'No se encontraron palabras sospechosas.'})}</span>`));
   return `<div class="fixbox">${body}</div>`;
 }
 function paintFix(c){
@@ -2701,13 +2994,185 @@ function paintFix(c){
     if(row)row.insertAdjacentHTML('beforebegin',html);else h.insertAdjacentHTML('beforeend',html);
   });
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ✍️ 직접 지적하고 검증하기
+   "여기 spring it 같았는데" "튕겨 나가다 느낌이었어" 처럼 한국어/영어로 지적하면
+   ① AI가 문맥·발음·숙어로 맞는지 따져 후보를 내고  ② 보관해 둔 그 구간 소리를 다시 들어(받아쓰기 재실행) 확인한다.
+   "원문 → 고친 말" 처럼 화살표로 쓰면 그대로 후보로 올린다. (웹 검색 대신 소리를 다시 듣는 방식)
+   ═══════════════════════════════════════════════════════════════════════ */
+const KEEP_N=90;
+function keepAudio(sess,n,blob,tSec){
+  put({key:`keep_${sess.id}_${n}`,sessionId:sess.id,seq:n,tSec,blob,status:'keep'}).catch(()=>{});
+  del(`keep_${sess.id}_${n-KEEP_N}`).catch(()=>{});
+}
+async function sttPlain(blob,prompt){
+  const model='gpt-4o-transcribe';
+  let res;
+  if(SRV.on){
+    const b64=await blobToB64(blob);
+    res=await fetchT('/api/transcribe',{method:'POST',headers:srvHeaders(),body:JSON.stringify({audio:b64,model,response_format:'json',language:slang()!=='auto'?slang():undefined,prompt:prompt||undefined})},STT_TIMEOUT);
+  }else{
+    const fd=new FormData();fd.append('file',blob,'a.wav');fd.append('model',model);fd.append('temperature','0');fd.append('response_format','json');if(prompt)fd.append('prompt',prompt);if(slang()!=='auto')fd.append('language',slang());
+    res=await fetchT('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{'Authorization':'Bearer '+key()},body:fd},STT_TIMEOUT);
+  }
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  return String((await res.json()).text||'').trim();
+}
+function hintBox(seq,btn){
+  const host=btn.closest('.ck')||btn.closest('.tline');if(!host)return;
+  const old=host.querySelector('.hintbox');if(old){old.remove();return;}
+  const row=host.querySelector('.trrow');
+  const html=`<div class="hintbox"><input class="inp" placeholder="${esc(t4({ko:"어디가 이상했나요? 예) spring it 같았어요 / '튕겨 나가다' 느낌 / sleep on it → slip it on",ja:'どこがおかしい？ 例) spring it のようだった',zh:'哪里不对？例如：听起来像 spring it',es:'¿Qué sonó raro? p. ej.: sonaba como "spring it"'}))}"><button>${t4({ko:'검증',ja:'検証',zh:'验证',es:'Verificar'})}</button></div>`;
+  if(row)row.insertAdjacentHTML('beforebegin',html);else host.insertAdjacentHTML('beforeend',html);
+  const b=host.querySelector('.hintbox'),i=b.querySelector('input'),go=b.querySelector('button');
+  const run=()=>{const v=i.value.trim();if(v)verifyHint(seq,v,go,b);};
+  go.onclick=run;i.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();run();}});
+  i.focus();
+}
+async function judgeHint(c,hint){
+  const tc=bodyChunks(session).slice().sort((x,y)=>x.seq-y.seq);
+  const i=tc.findIndex(x=>x.seq===c.seq);
+  const prev=tc.slice(Math.max(0,i-2),i),next=tc.slice(i+1,i+2);
+  const sys=`너는 영어 음성인식 결과를 검증하는 전문가다. 학생이 [대상 문단]의 일부가 잘못 받아 적혔다고 지적했다. 지적은 한국어나 영어로, "이렇게 들렸다"일 수도 "이런 뜻이었다"일 수도 있다.
+할 일:
+1. 지적이 가리키는 구절을 [대상 문단]에서 찾는다. heard는 문단에 **실제로 있는 글자 그대로** 복사한다.
+2. 그 자리에 실제로 말했을 법한 영어 표현 후보 1~3개를 낸다. 후보마다 검증한다: ①발음이 받아쓴 글자와 비슷한가 ②앞뒤 문맥·숙어·문법으로 뜻이 통하는가 ③학생이 말한 느낌(뜻)과 맞는가.
+3. 학생 지적이 틀렸거나 근거가 약하면 솔직하게 말한다. 억지로 맞춰주지 마라.
+출력 JSON만: {"verdict":"yes|maybe|no","note":"한국어 1~2문장 — 맞는지 판단과 근거","phrase":"소리를 다시 들을 때 힌트로 줄 영어 구절","items":[{"heard":"kind of sleep on it","options":["kind of slept on it"],"reason":"한국어 25자 이내","conf":0.7}]}`;
+  const user=`[학생 지적]\n${hint}\n\n${prev.length?`[앞 문맥]\n${prev.map(x=>x.text.slice(-500)).join('\n')}\n\n`:''}[대상 문단]\n${c.text}\n\n${next.length?`[다음 문맥]\n${next.map(x=>x.text.slice(0,300)).join('\n')}`:''}`;
+  const raw=await llm([{role:'system',content:sys},{role:'user',content:user}],{temp:.1,maxTokens:900,json:true,strong:true});
+  let j;try{j=JSON.parse(raw);}catch(e){j=parseLoose(raw,'heard')||{};}
+  const items=[];
+  (j.items||[]).forEach(it=>{
+    const heard=String((it&&it.heard)||'').trim();
+    const opts=(Array.isArray(it&&it.options)?it.options:[]).map(x=>String(x).trim()).filter(x=>x&&x.length<=60&&x.toLowerCase()!==heard.toLowerCase()).slice(0,3);
+    if(!heard||!opts.length||!fixWordRe(heard).test(c.text))return;
+    items.push({heard,options:opts,reason:String(it.reason||'').slice(0,50),conf:+it.conf||0,src:'user'});
+  });
+  return {items,note:String(j.note||'').slice(0,240),verdict:String(j.verdict||''),phrase:String(j.phrase||'').slice(0,120)};
+}
+async function verifyHint(seq,hint,go,box){
+  const c=((session&&session.chunks)||[]).find(x=>x.seq===seq);if(!c||!c.text)return;
+  if(needKey())return;
+  go.disabled=true;go.innerText='…';
+  try{
+    let r;
+    const m=hint.match(/^(.+?)\s*(?:→|->|=>)\s*(.+)$/);                 // "원문 → 고친 말" 은 그대로 후보로
+    if(m&&fixWordRe(m[1].trim()).test(c.text))
+      r={items:[{heard:m[1].trim(),options:[m[2].trim()],reason:'직접 지정',conf:1,src:'user'}],note:'직접 지정한 수정입니다. 소리로 확인해 볼게요.',verdict:'maybe',phrase:m[2].trim()};
+    else r=await judgeHint(c,hint);
+    // 소리 다시 듣기: 힌트 없이(중립) + 힌트를 주고, 두 번
+    let audioNote='';
+    try{
+      const rec=await getOne(`keep_${session.id}_${seq}`);
+      if(rec&&rec.blob){
+        const words=[...new Set(r.items.flatMap(x=>x.options).concat(r.phrase?[r.phrase]:[]))].slice(0,5).join(', ');
+        const prevTail=bodyChunks(session).filter(x=>x.seq<seq).slice(-1).map(x=>x.text.slice(-160)).join(' ');
+        const [neu,hin]=await Promise.all([sttPlain(rec.blob,prevTail).catch(()=>''),words?sttPlain(rec.blob,(prevTail+' '+words).trim()).catch(()=>''):Promise.resolve('')]);
+        r.items.forEach(f=>{
+          const hasOpt=t=>f.options.some(o=>nm(t).includes(nm(o)));
+          f.audio=hasOpt(neu)?'strong':hasOpt(hin)?'weak':(neu&&nm(neu).includes(nm(f.heard))?'none':'');
+        });
+        if(neu)audioNote=` · 🎧 다시 들은 결과: "${neu.slice(0,160)}"`;
+      }else audioNote=' · (이 구간의 소리는 이미 지워져 소리 재확인은 못했어요. 최근 약 90구간까지만 보관돼요.)';
+    }catch(e){audioNote=' · (소리 재확인 실패)';}
+    c.fixes=r.items;c.fixChecked=true;
+    c.hintNote=((r.verdict==='yes'?'맞을 가능성 높음 — ':r.verdict==='no'?'근거가 약해요 — ':'')+r.note+audioNote).trim();
+    save(session);
+    if(box)box.remove();
+    if(document.getElementById('sec-std').classList.contains('on'))drawFull();else paintFix(c);
+  }catch(e){alert(t4({ko:'검증 실패: ',ja:'検証失敗: ',zh:'验证失败: ',es:'Error al verificar: '})+e.message);go.disabled=false;go.innerText=t4({ko:'검증',ja:'検証',zh:'验证',es:'Verificar'});}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   📑 강의 흐름(토픽) + 오른쪽 작은 전문
+   녹음이 진행되는 동안 5~10분 단위로 주제를 끊어 "0:00~5:00 가벼운 인사 / 5:00~10:00 …" 목록을 만든다.
+   4분 분량의 새 내용이 쌓일 때마다 마지막 토픽부터만 다시 정리하므로 비용이 적다.
+   PC(넓은 화면)에서는 오른쪽 여백에 계속 보이고, 좁은 화면에서는 [📑 흐름·전문] 버튼으로 연다.
+   ═══════════════════════════════════════════════════════════════════════ */
+let topicBusy=false,spFollow=true;
+function topicRange(sess,i){
+  const tp=sess.topics||[],t=tp[i];
+  const cs=bodyChunks(sess).filter(c=>c.tSec!=null);
+  const endNow=cs.length?cs[cs.length-1].tSec:t.s;
+  const e=tp[i+1]?tp[i+1].s:endNow;
+  return {s:t.s,e,open:!tp[i+1]};
+}
+function topicsHtml(sess,compact){
+  const tp=sess.topics||[];
+  if(!tp.length)return `<div class="spsmall" style="padding:4px 2px;">${t4({ko:'3분쯤 지나면 주제별 흐름이 여기에 쌓여요.',ja:'3分ほどでトピックごとの流れがここに表示されます。',zh:'约3分钟后，这里会显示按主题划分的流程。',es:'En unos 3 minutos aparecerá aquí el flujo por temas.'})}</div>`;
+  return tp.map((t,i)=>{const r=topicRange(sess,i);
+    return `<div class="tp${r.open&&state!=='idle'?' now':''}" onclick="spJump(${r.s})"><div class="tpt">${clk(r.s)} – ${r.open&&state!=='idle'?t4({ko:'진행 중',ja:'進行中',zh:'进行中',es:'en curso'}):clk(r.e)}</div><div class="tpn">${esc(t.title)}</div>${t.gist&&!compact?`<div class="tpg">${esc(t.gist)}</div>`:''}</div>`;}).join('');
+}
+function spJump(sec){
+  const el=document.getElementById('sp-'+sec);
+  if(el){spFollow=false;el.scrollIntoView({block:'start',behavior:'smooth'});}
+  else if(document.getElementById('sec-std').classList.contains('on'))jumpTo(clk(sec));
+}
+function sideVisible(){
+  return !!(session&&session.kind==='rec'&&document.getElementById('sec-rec').classList.contains('on')&&bodyChunks(session).length);
+}
+function paintSide(){
+  const on=sideVisible();document.body.classList.toggle('hasside',on);
+  if(!on)return;
+  const T=$('spTopics'),X=$('spText');if(!T||!X)return;
+  T.innerHTML=topicsHtml(session,false);
+  X.innerHTML=bodyChunks(session).slice(-250).map(c=>`<div class="sl" id="sp-${c.tSec}"><span class="st">${clk(c.tSec||0)}</span>${esc(lineText(session,c))}</div>`).join('');
+  if(spFollow)X.scrollTop=X.scrollHeight;
+}
+function toggleSheet(){const p=$('sidePanel');p.classList.toggle('sheet');paintSide();}
+function maybeTopics(sess){
+  if(!sess||sess.kind!=='rec')return;
+  const cs=bodyChunks(sess).filter(c=>c.tSec!=null);if(!cs.length)return;
+  const now=cs[cs.length-1].tSec,tp=sess.topics||[];
+  if(!tp.length?now>=180:now-(sess.topicT||0)>=240)updateTopics(sess,false);
+}
+async function updateTopics(sess,force,upTo){
+  if(!sess||topicBusy||!hasAuth())return;
+  const all=bodyChunks(sess).filter(c=>c.tSec!=null&&(upTo==null||c.tSec<=upTo)).sort((a,b)=>a.seq-b.seq);
+  if(!all.length)return;
+  const now=all[all.length-1].tSec,tp=sess.topics||[],last=tp[tp.length-1],t0=last?last.s:0;
+  topicBusy=true;const btn=$('topicBtn');if(btn)btn.disabled=true;
+  try{
+    const lines=all.filter(c=>c.tSec>=t0).map(c=>`[${clk(c.tSec)}=${c.tSec}s] ${lineText(sess,c)}`).join('\n');
+    const lang=TR_LANGS[trLang].name;
+    const sys=`너는 강의 흐름을 정리하는 조교다. 아래는 강의를 받아쓴 글이고 줄마다 [시간=초] 가 붙어 있다. 이 구간을 **주제가 바뀌는 지점**에서 나눠 목차를 만든다.
+규칙:
+- 한 토픽은 대략 5~10분. 같은 주제가 길게 이어지면 최대 10분까지 늘려 한 토픽으로 두고, 인사·잡담·공지·쉬는 시간도 하나의 토픽으로 적는다.
+- s(시작 초)는 위에 실제로 있는 시간 값만 쓴다. 첫 토픽의 s는 ${t0}.
+- title은 ${lang}로 12~28자, 무슨 이야기인지 구체적으로 (예: "메소포타미아 문명과 쐐기문자"). "소개", "내용 설명" 같은 막연한 제목 금지.
+- gist는 ${lang}로 40자 이내 한 줄 핵심.
+- 마지막 토픽은 지금(${now}초)까지 진행된 부분이다.
+${tp.length>1?`- 앞서 정리된 토픽(참고, 다시 만들지 마라): ${tp.slice(-3,-1).map(x=>x.title).join(' / ')}\n`:''}JSON만: {"topics":[{"s":${t0},"title":"...","gist":"..."}]}`;
+    const raw=await llm([{role:'system',content:sys},{role:'user',content:lines.slice(-26000)}],{temp:.2,maxTokens:900,json:true});
+    let j;try{j=JSON.parse(raw);}catch(e){j=parseLoose(raw,'title')||{};}
+    let nt=(j.topics||[]).map(x=>({s:Math.round(+x.s),title:String(x.title||'').trim().slice(0,40),gist:String(x.gist||'').trim().slice(0,80)}))
+      .filter(x=>isFinite(x.s)&&x.title&&x.s>=t0).sort((a,b)=>a.s-b.s);
+    if(!nt.length)return;
+    nt[0].s=t0;
+    sess.topics=tp.filter(x=>x.s<t0).concat(nt);sess.topicT=now;
+    save(sess);
+  }catch(e){console.warn('토픽 정리 실패',e.message);}
+  finally{topicBusy=false;if(btn)btn.disabled=false;paintSide();if(document.getElementById('sec-std').classList.contains('on')&&session&&session.id===sess.id)drawFull();}
+}
+/* 처음부터 다시 정리 (20분씩 이어서) */
+async function rebuildTopics(){
+  if(!session||needKey())return;
+  const cs=bodyChunks(session).filter(c=>c.tSec!=null);if(!cs.length)return alert('시간 정보가 있는 받아쓰기만 정리할 수 있어요.');
+  const end=cs[cs.length-1].tSec;session.topics=[];
+  const b=$('topicRebuild');if(b){b.disabled=true;b.innerText='정리 중…';}
+  for(let T=1200;;T+=1200){await updateTopics(session,true,Math.min(T,end));if(T>=end)break;}
+  if(b){b.disabled=false;}
+  drawFull();
+}
 async function checkMisheard(seq,btn){
   const c=((session&&session.chunks)||[]).find(x=>x.seq===seq);
   if(!c||!c.text)return;
   if(needKey())return;
   btn.classList.add('busy');
   try{
-    c.fixes=await findMisheard(c);c.fixChecked=true;
+    c.fixes=await findMisheard(c);c.fixChecked=true;delete c.hintNote;
     if(session)save(session);
     paintFix(c);
   }catch(e){alert(t4({ko:'점검 실패: ',ja:'チェック失敗: ',zh:'检查失败: ',es:'Error al revisar: '})+e.message);}
@@ -3222,7 +3687,7 @@ async function ask(forceQ,baseIdx){
 - 위치 표시는 반드시 [강의 원문]에 실제로 있는 표시만 쓴다.
 - 학생이 영어에 약하므로 어려운 영어 표현은 뜻을 함께 적어준다.
 - 학생이 사진(스크린샷)을 함께 보냈다면, 그 사진 속 문제·슬라이드·표 등을 직접 읽고 답한다. 사진 내용이 강의 원문과 연결되면 위치 표시도 같이 붙인다.
-${figRule}${choiceRule}${multiRule}${repeatRule}
+${spkMulti(session)?'\n★ 원문의 "A:", "B:" 등은 목소리로 구별한 화자 표시다(이름 있으면 그 이름). 누구인지 모르니 이름을 지어내지 말고 그 표시대로 지칭한다.\n':''}${figRule}${choiceRule}${multiRule}${repeatRule}
 [앞선 질문들]
 ${hist}
 ${quoted.length?`\n[이미 인용한 문장]\n${quoted.join('\n')}`:''}`;
@@ -4152,10 +4617,11 @@ function paintStdPane(){
 }
 function drawFull(){
   const cs=bodyChunks(session);
-  $('fullArea').innerHTML=cs.length?cs.map(c=>
-    `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${esc(c.text)}`+(c.figs&&c.figs.length?`<span class="figph" data-p="${c.para}"></span>`:'')
+  const tbox=cs.length&&cs.some(c=>c.tSec!=null)?`<div style="margin-bottom:12px;"><div class="sphd"><b>📑 ${t4({ko:'강의 흐름',ja:'講義の流れ',zh:'课程脉络',es:'Flujo de la clase'})}</b><button class="mini" id="topicRebuild" onclick="rebuildTopics()">${(session.topics||[]).length?'↻':t4({ko:'흐름 만들기',ja:'流れを作る',zh:'生成脉络',es:'Crear flujo'})}</button></div>${(session.topics||[]).length?topicsHtml(session,false):''}</div>`:'';
+  $('fullArea').innerHTML=tbox+(cs.length?cs.map(c=>
+    `<div class="tline" id="tl-${esc(label(c))}"><span class="tm">${esc(label(c))}</span>${textHtml(session,c)}`+(c.figs&&c.figs.length?`<span class="figph" data-p="${c.para}"></span>`:'')
     +(c.ko?`<div class="ko">${esc(c.ko)}</div>`:'')+fixBoxHtml(c)+trBtn(c.seq,!!c.ko)+`</div>`).join('')
-    :'<div class="empty">내용이 없습니다.</div>';
+    :'<div class="empty">내용이 없습니다.</div>');
   hydrateFigs();
 }
 function jumpTo(k){
@@ -4236,8 +4702,8 @@ function openArc(id){
 }
 function delSession(id){
   if(!confirm('이 기록을 삭제할까요? 복구할 수 없습니다.'))return;
-  setSessions(sessions().filter(x=>x.id!==id));
-  getAll().then(a=>a.filter(c=>c.status==='fig'&&c.sessionId===id).forEach(c=>del(c.key).catch(()=>{}))).catch(()=>{});
+  MEM=MEM.filter(x=>x.id!==id);idbDelSession(id);
+  getAll().then(a=>a.filter(c=>(c.status==='fig'||c.status==='keep')&&c.sessionId===id).forEach(c=>del(c.key).catch(()=>{}))).catch(()=>{});
   if(session&&session.id===id)session=null;
   renderArc();renderStudy();
 }
